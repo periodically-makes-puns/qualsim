@@ -171,7 +171,7 @@ fn main() -> std::io::Result<()> {
     println!("items: {}", cache.items);
     println!("{}ms", start.elapsed().as_millis());
     if output.len() > 1 {
-        write("cache2.bcode", bincode::serialize(&cache).unwrap())
+        write(output, bincode::serialize(&cache).unwrap())
     } else {
         write("res.txt", b"success")
     }
