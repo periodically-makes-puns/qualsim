@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::cmp::{max, min};
 use std::fmt;
 use serde::{Serialize, Deserialize};
+use sled;
 
 #[derive(Debug)]
 pub struct State {
@@ -62,7 +63,6 @@ pub struct DPCache {
 }
 
 
-
 fn combine_method(qual: u16, method: u8, state: &State) -> u64 {
     ((qual as u64) << 48) + ((method as u64) << 40) + state.index()
 }
@@ -92,12 +92,20 @@ impl DPCache {
         }
     }
 
+    pub fn get(&self, ind: u64) -> Option<&u64> {
+        self.cache.get(&ind)
+    }
+
+    pub fn insert(&mut self, ind: u64, res: u64) -> Option<u64> {
+        self.cache.insert(ind, res)
+    }
+
     pub fn query(&mut self, st: &State) -> u64 {
         let ind = st.index();
-        if self.cache.contains_key(&ind) {
-            self.hits += 1;
-            
-            return *self.cache.get(&ind).unwrap();
+        self.hits += 1;
+        match self.get(ind) {
+            Some(ret) => {return *ret;}
+            None => {self.hits -= 1;}
         }
         let State {time, iq, cp, dur, manip, wn, inno, gs, has} = st;
         if *cp < 7 || *time < 2 { 
@@ -394,7 +402,7 @@ impl DPCache {
             res[18] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 18, &new_state);
         }
         let ret = *res.iter().max().unwrap();
-        self.cache.insert(ind, ret);
+        self.insert(ind, ret);
         ret
     }
 
@@ -406,7 +414,7 @@ impl DPCache {
         println!("TOTAL: {:.4}", qual as f64 / 400.0);
         while method > 0 {
             assert!(method < 19, "invalid method");
-            prev = match self.cache.get(&last) {None => 0, Some(t) => *t};
+            prev = match self.get(last) {None => 0, Some(t) => *t};
             qual = (prev >> 48) as u16;
             println!("{:02} {:20} {:.4} {}", method, 
                 ACTIONS[method as usize + 1], 
@@ -424,7 +432,7 @@ impl DPCache {
         while method > 0 {
             assert!(method < 19, "invalid method");
             prev = next;
-            curr = match self.cache.get(&next) {None => 0, Some(t) => *t};
+            curr = match self.get(next) {None => 0, Some(t) => *t};
             (_, method, next) = unpack_method(curr);
         }
         return State::unpack(prev).time;

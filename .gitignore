@@ -1,3 +1,5 @@
 /target
 Cargo.lock
 *.bcode
+res.txt
+recipe.json

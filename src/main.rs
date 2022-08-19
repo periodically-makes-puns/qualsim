@@ -70,21 +70,14 @@ struct Rotation<'a> {
     finisher: &'a Finisher<'a>
 }
 
-fn main() -> std::io::Result<()> {
-    let args: Vec<String> = env::args().collect();
+struct SimResult<'a> {
+    best_qual: u32,
+    best_time: u8,
+    best_rot: Option<Rotation<'a>>,
+    best_qst: Option<qual::State>
+}
 
-    let input = &args[1];
-    let output = &args[2];
-    let mut cache: qual::DPCache;
-
-    let start = Instant::now();
-    if input.len() > 1 {
-        cache = bincode::deserialize(&read(input).unwrap()).unwrap();
-    } else {
-        cache = qual::DPCache::new();
-    }
-    println!("Cache loaded");
-
+fn check(cache: &mut qual::DPCache) -> SimResult {
     let mut recipe = load_recipe();
     println!("Recipe loaded");
     let prog_unit: u16 = ((recipe.cms as f64 * 10. / LV_90_PROG_DIV + 2.) * if recipe.rlvl > 580 {LV_90_PROG_MUL} else {100.} / 100.).floor() as u16;
@@ -95,7 +88,7 @@ fn main() -> std::io::Result<()> {
     let mut t = 45;
     let mut max = 90;
     
-    let mut best_qual;
+    let mut best_qual = 0;
     let mut best_rot: Option<Rotation> = None;
     let mut best_qst: Option<qual::State> = None;
     while min < max {
@@ -162,7 +155,31 @@ fn main() -> std::io::Result<()> {
         }
         t = (max + min) / 2;
     }
-    println!("Best time: {}", t);
+    SimResult {
+        best_qual,
+        best_time: t,
+        best_rot,
+        best_qst
+    }
+}
+
+fn main() -> std::io::Result<()> {
+    let args: Vec<String> = env::args().collect();
+
+    let input = &args[1];
+    let output = &args[2];
+    let mut cache: qual::DPCache;
+
+    let start = Instant::now();
+    if input.len() > 1 {
+        cache = bincode::deserialize(&read(input).unwrap()).unwrap();
+    } else {
+        cache = qual::DPCache::new();
+    }
+    println!("Cache loaded");
+
+    let SimResult {best_rot, best_qst, best_qual: _, best_time} = check(&mut cache);
+    println!("Best time: {}", best_time);
     if let Some(rot) = best_rot {
         println!("{}{} {}", rot.opener, rot.extra, rot.finisher.desc);
         cache.print_backtrace(&best_qst.unwrap());
