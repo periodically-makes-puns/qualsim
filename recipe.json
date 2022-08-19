@@ -1,12 +1,12 @@
 {
     "time": 90,
-    "cp": 576,
-    "cms": 3512,
-    "ctrl": 3459,
+    "cp": 694,
+    "cms": 3804,
+    "ctrl": 3804,
 
-    "rlvl": 555,
-    "dur": 80,
-    "prog": 3400,
-    "qual": 6740,
-    "has": false
+    "rlvl": 610,
+    "dur": 70,
+    "prog": 4300,
+    "qual": 12800,
+    "has": true
 }

@@ -1,7 +1,5 @@
-use std::collections::HashMap;
 use std::cmp::{max, min};
 use std::fmt;
-use serde::{Serialize, Deserialize};
 use sled;
 
 #[derive(Debug)]
@@ -55,9 +53,39 @@ impl fmt::Display for State {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+pub struct SledMap {
+    db: sled::Db,
+    hits: u64,
+}
+
+impl SledMap {
+    pub fn new() -> SledMap {
+        SledMap {
+            db: sled::open("sled_cache").unwrap(),
+            hits: 0
+        }
+    }
+
+    pub fn get(&mut self, x: u64) -> Option<u64> {
+        match self.db.get(x.to_be_bytes()).unwrap() {
+            Some(ret) => {
+                self.hits += 1;
+                if self.hits % 1000000 == 0 {
+                    println!("Hits: {}", self.hits);
+                }
+                Some(u64::from_be_bytes(ret.as_ref().try_into().expect("bad slice size")))
+            },
+            None => None
+        }
+    }
+
+    pub fn insert(&mut self, k: u64, v: u64) {
+        self.db.insert(k.to_be_bytes(), &v.to_be_bytes()).unwrap();
+    }
+}
+
 pub struct DPCache {
-    cache: HashMap<u64, u64>,
+    cache: SledMap,
     pub hits: u64,
     pub items: u64
 }
@@ -86,26 +114,25 @@ static ACTIONS: [&str; 20] = ["(finished)", "",
 impl DPCache {
     pub fn new() -> DPCache {
         DPCache {
-            cache: HashMap::new(),
+            cache: SledMap::new(),
             hits: 0,
             items: 0
         }
     }
 
-    pub fn get(&self, ind: u64) -> Option<&u64> {
-        self.cache.get(&ind)
+    pub fn get(&mut self, ind: u64) -> Option<u64> {
+        self.cache.get(ind)
     }
 
-    pub fn insert(&mut self, ind: u64, res: u64) -> Option<u64> {
+    pub fn insert(&mut self, ind: u64, res: u64) {
         self.cache.insert(ind, res)
     }
 
     pub fn query(&mut self, st: &State) -> u64 {
         let ind = st.index();
-        self.hits += 1;
         match self.get(ind) {
-            Some(ret) => {return *ret;}
-            None => {self.hits -= 1;}
+            Some(ret) => {return ret;}
+            None => {}
         }
         let State {time, iq, cp, dur, manip, wn, inno, gs, has} = st;
         if *cp < 7 || *time < 2 { 
@@ -414,7 +441,7 @@ impl DPCache {
         println!("TOTAL: {:.4}", qual as f64 / 400.0);
         while method > 0 {
             assert!(method < 19, "invalid method");
-            prev = match self.get(last) {None => 0, Some(t) => *t};
+            prev = match self.get(last) {None => 0, Some(t) => t};
             qual = (prev >> 48) as u16;
             println!("{:02} {:20} {:.4} {}", method, 
                 ACTIONS[method as usize + 1], 
@@ -432,7 +459,7 @@ impl DPCache {
         while method > 0 {
             assert!(method < 19, "invalid method");
             prev = next;
-            curr = match self.get(next) {None => 0, Some(t) => *t};
+            curr = match self.get(next) {None => 0, Some(t) => t};
             (_, method, next) = unpack_method(curr);
         }
         return State::unpack(prev).time;

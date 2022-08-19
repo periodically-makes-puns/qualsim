@@ -1,11 +1,7 @@
 pub mod qual;
 pub mod prog;
 use std::time::Instant;
-use std::fs::read;
-use std::fs::write;
-use bincode;
 use prog::Finisher;
-use std::env;
 use serde::{Serialize, Deserialize};
 use std::io::BufReader;
 use std::fs::File;
@@ -163,19 +159,11 @@ fn check(cache: &mut qual::DPCache) -> SimResult {
     }
 }
 
-fn main() -> std::io::Result<()> {
-    let args: Vec<String> = env::args().collect();
-
-    let input = &args[1];
-    let output = &args[2];
+fn main() {
     let mut cache: qual::DPCache;
 
     let start = Instant::now();
-    if input.len() > 1 {
-        cache = bincode::deserialize(&read(input).unwrap()).unwrap();
-    } else {
-        cache = qual::DPCache::new();
-    }
+    cache = qual::DPCache::new();
     println!("Cache loaded");
 
     let SimResult {best_rot, best_qst, best_qual: _, best_time} = check(&mut cache);
@@ -187,9 +175,4 @@ fn main() -> std::io::Result<()> {
     println!("hits: {}", cache.hits);
     println!("items: {}", cache.items);
     println!("{}ms", start.elapsed().as_millis());
-    if output.len() > 1 {
-        write(output, bincode::serialize(&cache).unwrap())
-    } else {
-        write("res.txt", b"success")
-    }
 }
