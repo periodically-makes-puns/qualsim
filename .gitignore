@@ -3,3 +3,4 @@ Cargo.lock
 *.bcode
 res.txt
 recipe.json
+/sled_cache
