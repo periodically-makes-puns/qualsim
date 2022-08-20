@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::cmp::{max, min};
 use std::fmt;
 use serde::{Serialize, Deserialize};
-use judy::JudyL;
 
 #[derive(Debug)]
 pub struct State {
@@ -57,7 +56,7 @@ impl fmt::Display for State {
 
 #[derive(Serialize, Deserialize)]
 pub struct DPCache {
-    cache: JudyL,
+    cache: HashMap<u64, u64>,
     pub hits: u64,
     pub items: u64
 }
