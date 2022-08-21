@@ -1,8 +1,7 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::cmp::{max, min};
 use std::fmt;
 use serde::{Serialize, Deserialize};
-use sled;
 
 #[derive(Debug)]
 pub struct State {
@@ -57,7 +56,7 @@ impl fmt::Display for State {
 
 #[derive(Serialize, Deserialize)]
 pub struct DPCache {
-    cache: HashMap<u64, u64>,
+    cache: BTreeMap<u64, u64>,
     pub hits: u64,
     pub items: u64
 }
@@ -86,7 +85,7 @@ static ACTIONS: [&str; 20] = ["(finished)", "",
 impl DPCache {
     pub fn new() -> DPCache {
         DPCache {
-            cache: HashMap::new(),
+            cache: BTreeMap::new(),
             hits: 0,
             items: 0
         }
