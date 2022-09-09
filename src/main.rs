@@ -14,6 +14,7 @@ use serde_json;
 #[derive(Serialize, Deserialize)]
 struct Statline {
     time: u8,
+    check_time: bool,
     cp: u16,
     cms: u16,
     ctrl: u16,
@@ -64,7 +65,7 @@ fn convert(recipe: &Statline, pst: &prog::State, finisher: &Finisher, prog_unit:
     }, pst.reflect))
 }
 
-struct Rotation<'a> {
+pub struct Rotation<'a> {
     opener: &'a str,
     extra: char,
     finisher: &'a Finisher<'a>
@@ -73,8 +74,8 @@ struct Rotation<'a> {
 struct SimResult<'a> {
     best_qual: u32,
     best_time: u8,
-    best_rot: Option<Rotation<'a>>,
-    best_qst: Option<qual::State>
+    best_rot: Rotation<'a>,
+    best_qst: qual::State
 }
 
 fn check(cache: &mut qual::DPCache) -> SimResult {
@@ -85,8 +86,8 @@ fn check(cache: &mut qual::DPCache) -> SimResult {
     println!("Prog/100: {}", prog_unit);
     println!("Qual/100: {}", qual_unit);
     let mut min = 0;
-    let mut t = 45;
-    let mut max = 90;
+    let mut t = (recipe.time + min) / 2;
+    let mut max = recipe.time;
     
     let mut best_qual = 0;
     let mut best_rot: Option<Rotation> = None;
@@ -151,6 +152,9 @@ fn check(cache: &mut qual::DPCache) -> SimResult {
         if best_qual >= recipe.qual {
             max = t;
         } else {
+            if min == t && max < recipe.time {
+                max += 1;
+            }
             min = t + 1;
         }
         t = (max + min) / 2;
@@ -158,12 +162,30 @@ fn check(cache: &mut qual::DPCache) -> SimResult {
     SimResult {
         best_qual,
         best_time: t,
-        best_rot,
-        best_qst
+        best_rot: best_rot.unwrap(),
+        best_qst: best_qst.unwrap()
     }
 }
 
-fn main() -> std::io::Result<()> {
+
+fn convert_char(c: char) -> (&'static str, i32) {
+    match c {
+        'M' => ("Muscle Memory", 3),
+        'R' => ("Reflect", 3),
+        'm' => ("Manipulation", 2),
+        'v' => ("Veneration", 2),
+        '1' => ("Waste Not", 2),
+        '2' => ("Waste Not II", 2),
+        'b' => ("Basic Synthesis", 3),
+        'c' => ("Careful Synthesis", 3),
+        'f' => ("Observe", 3),
+        'g' => ("Groundwork", 3),
+        'i' => ("Heart and Soul", 3),
+        _ => ("", 1)
+    }
+}
+
+fn main() {
     let args: Vec<String> = env::args().collect();
 
     let input = &args[1];
@@ -177,19 +199,45 @@ fn main() -> std::io::Result<()> {
         cache = qual::DPCache::new();
     }
     println!("Cache loaded");
-
-    let SimResult {best_rot, best_qst, best_qual: _, best_time} = check(&mut cache);
-    println!("Best time: {}", best_time);
-    if let Some(rot) = best_rot {
-        println!("{}{} {}", rot.opener, rot.extra, rot.finisher.desc);
-        cache.print_backtrace(&best_qst.unwrap());
+    let result = check(&mut cache);
+    let SimResult {best_rot, best_qst, best_qual, best_time} = result;
+    let finisher = format!("{}", best_rot.finisher.desc);
+    for c in best_rot.opener.chars() {
+        let (name, wait) = convert_char(c);
+        println!("/ac '{}' <wait.{}>", name, wait);
+        if c == 'f' {
+            println!("/ac 'Focused Synthesis' <wait.3>");
+        } else if c == 'i' {
+            println!("/ac 'Intensive Synthesis' <wait.3>");
+        }
     }
+    if best_rot.extra != ' ' {
+        let c = best_rot.extra; 
+        let (name, wait) = convert_char(best_rot.extra);
+        println!("/ac '{}' <wait.{}>", name, wait);
+        if c == 'f' {
+            println!("/ac 'Focused Synthesis' <wait.3>");
+        } else if c == 'i' {
+            println!("/ac 'Intensive Synthesis' <wait.3>");
+        }
+    }
+    cache.print_macro(&best_qst);
+    for c in finisher.chars() {
+        let (name, wait) = convert_char(c);
+        println!("/ac '{}' <wait.{}>", name, wait);
+        if c == 'f' {
+            println!("/ac 'Focused Synthesis' <wait.3>");
+        } else if c == 'i' {
+            println!("/ac 'Intensive Synthesis' <wait.3>");
+        }
+    }
+    println!("Best time: {}", best_time);
+    println!("Quality: {}", best_qual);
+    cache.print_backtrace(&best_qst);
     println!("hits: {}", cache.hits);
     println!("items: {}", cache.items);
     println!("{}ms", start.elapsed().as_millis());
     if output.len() > 1 {
-        write(output, bincode::serialize(&cache).unwrap())
-    } else {
-        write("res.txt", b"success")
+        write(output, bincode::serialize(&cache).unwrap()).expect("Failed to export cache");
     }
 }

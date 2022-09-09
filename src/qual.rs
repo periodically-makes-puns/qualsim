@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::cmp::{max, min};
 use std::fmt;
 use serde::{Serialize, Deserialize};
@@ -13,7 +13,7 @@ pub struct State {
     pub wn: i8, // 0-8, 4 bits
     pub inno: i8,
     pub gs: i8, 
-    pub has: bool
+    pub has: bool,
 }
 
 impl State {
@@ -45,7 +45,11 @@ impl State {
         // 90 * 11 * 700 * 17 * 9 * 9 * 5 * 4 * 2 = 38B
         // too large for an array so a hashmap is best
     }
-}
+
+    pub fn index_timeless(&self) -> u32 {
+        self.index() as u32
+    }
+ }
 
 impl fmt::Display for State {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -56,7 +60,7 @@ impl fmt::Display for State {
 
 #[derive(Serialize, Deserialize)]
 pub struct DPCache {
-    cache: BTreeMap<u64, u64>,
+    cache: HashMap<u64, u64>,
     pub hits: u64,
     pub items: u64
 }
@@ -85,7 +89,7 @@ static ACTIONS: [&str; 20] = ["(finished)", "",
 impl DPCache {
     pub fn new() -> DPCache {
         DPCache {
-            cache: BTreeMap::new(),
+            cache: HashMap::new(),
             hits: 0,
             items: 0
         }
@@ -97,6 +101,14 @@ impl DPCache {
 
     pub fn insert(&mut self, ind: u64, res: u64) -> Option<u64> {
         self.cache.insert(ind, res)
+    }
+
+    pub fn check(&self, st: &State) -> Option<u64> {
+        let ind = st.index();
+        match self.get(ind) {
+            Some(ret) => Some(*ret),
+            None => None
+        }
     }
 
     pub fn query(&mut self, st: &State) -> u64 {
@@ -405,9 +417,9 @@ impl DPCache {
         ret
     }
 
-    pub fn print_backtrace(&mut self, st: &State) {
+    pub fn print_backtrace(&self, st: &State) {
         println!("START {}", State::unpack(st.index()));
-        let mut prev = self.query(st);
+        let mut prev = self.check(st).unwrap_or_else(|| 0);
         let (mut qual, mut method, mut last) = unpack_method(prev);
         let mut orig = qual;
         println!("TOTAL: {:.4}", qual as f64 / 400.0);
@@ -422,6 +434,72 @@ impl DPCache {
             (orig, method, last) = unpack_method(prev);
         }
         println!("FINISHED");
+    }
+
+    pub fn print_macro(&self, st: &State) {
+        let mut prev = self.check(st).unwrap_or_else(|| 0);
+        let (_, mut method, mut last) = unpack_method(prev);
+        while method > 0 {
+            assert!(method < 19, "invalid method");
+            prev = match self.get(last) {None => 0, Some(t) => *t};
+            match method {
+                1 => {println!("/ac 'Basic Touch' <wait.3>");},
+                2 => {println!("/ac 'Standard Touch' <wait.3>");},
+                3 => {println!("/ac 'Advanced Touch' <wait.3>");},
+                4 => {
+                    println!("/ac 'Basic Touch' <wait.3>");
+                    println!("/ac 'Standard Touch' <wait.3>");
+                },
+                5 => {
+                    println!("/ac 'Basic Touch' <wait.3>");
+                    println!("/ac 'Standard Touch' <wait.3>");
+                    println!("/ac 'Advanced Touch' <wait.3>");
+                },
+                6 => {
+                    println!("/ac Observe <wait.3>");
+                    println!("/ac 'Focused Touch' <wait.3>");
+                },
+                7 => {
+                    println!("/ac 'Prudent Touch' <wait.3>");
+                }
+                8 => {
+                    println!("/ac 'Preparatory Touch' <wait.3>");
+                },
+                9 => {
+                    println!("/ac 'Trained Finesse' <wait.3>");
+                },
+                10 => {
+                    println!("/ac 'Waste Not' <wait.2>");
+                },
+                11 => {
+                    println!("/ac 'Waste Not II' <wait.2>");
+                },
+                12 => {
+                    println!("/ac 'Manipulation' <wait.2>");
+                },
+                13 => {
+                    println!("/ac 'Master's Mend' <wait.2>");
+                },
+                14 => {
+                    println!("/ac Innovation <wait.2>");
+                }
+                15 => {
+                    println!("/ac 'Great Strides' <wait.2>");
+                }
+                16 => {
+                    println!("/ac Observe <wait.3>");
+                }
+                17 => {
+                    println!("/ac 'Byregot's Blessing' <wait.3>");
+                }
+                18 => {
+                    println!("/ac 'Heart and Soul <wait.3>");
+                    println!("/ac 'Precise Touch' <wait.3>");
+                }
+                _ => {}
+            }
+            (_, method, last) = unpack_method(prev);
+        }
     }
 
     pub fn check_time(&mut self, st: &State) -> u8{
