@@ -32,6 +32,7 @@ fn load_recipe() -> Statline {
 
 #[derive(Serialize, Deserialize)]
 struct Options {
+    mode: String,
     infile: String,
     outfile: String,
     check_time: bool
@@ -199,54 +200,56 @@ fn convert_char(c: char) -> (&'static str, i32) {
 fn main() {
     let options = load_options();
 
-    let mut cache: qual::DPCache;
+    if options.mode == "recipe" {
+        let mut cache: qual::DPCache;
 
-    let start = Instant::now();
-    if options.infile.len() > 0 {
-        cache = bincode::deserialize(&read(options.infile).unwrap()).unwrap();
-    } else {
-        cache = qual::DPCache::new(options.check_time);
-    }
-    println!("Cache loaded");
-    let result = check(&mut cache);
-    let SimResult {best_rot, best_qst, best_qual, best_time} = result;
-    let finisher = format!("{}", best_rot.finisher.desc);
-    for c in best_rot.opener.chars() {
-        let (name, wait) = convert_char(c);
-        println!("/ac '{}' <wait.{}>", name, wait);
-        if c == 'f' {
-            println!("/ac 'Focused Synthesis' <wait.3>");
-        } else if c == 'i' {
-            println!("/ac 'Intensive Synthesis' <wait.3>");
+        let start = Instant::now();
+        if options.infile.len() > 0 {
+            cache = bincode::deserialize(&read(options.infile).unwrap()).unwrap();
+        } else {
+            cache = qual::DPCache::new(options.check_time);
         }
-    }
-    if best_rot.extra != ' ' {
-        let c = best_rot.extra; 
-        let (name, wait) = convert_char(best_rot.extra);
-        println!("/ac '{}' <wait.{}>", name, wait);
-        if c == 'f' {
-            println!("/ac 'Focused Synthesis' <wait.3>");
-        } else if c == 'i' {
-            println!("/ac 'Intensive Synthesis' <wait.3>");
+        println!("Cache loaded");
+        let result = check(&mut cache);
+        let SimResult {best_rot, best_qst, best_qual, best_time} = result;
+        let finisher = format!("{}", best_rot.finisher.desc);
+        for c in best_rot.opener.chars() {
+            let (name, wait) = convert_char(c);
+            println!("/ac '{}' <wait.{}>", name, wait);
+            if c == 'f' {
+                println!("/ac 'Focused Synthesis' <wait.3>");
+            } else if c == 'i' {
+                println!("/ac 'Intensive Synthesis' <wait.3>");
+            }
         }
-    }
-    cache.print_macro(&best_qst);
-    for c in finisher.chars() {
-        let (name, wait) = convert_char(c);
-        println!("/ac '{}' <wait.{}>", name, wait);
-        if c == 'f' {
-            println!("/ac 'Focused Synthesis' <wait.3>");
-        } else if c == 'i' {
-            println!("/ac 'Intensive Synthesis' <wait.3>");
+        if best_rot.extra != ' ' {
+            let c = best_rot.extra; 
+            let (name, wait) = convert_char(best_rot.extra);
+            println!("/ac '{}' <wait.{}>", name, wait);
+            if c == 'f' {
+                println!("/ac 'Focused Synthesis' <wait.3>");
+            } else if c == 'i' {
+                println!("/ac 'Intensive Synthesis' <wait.3>");
+            }
         }
-    }
-    println!("Best time: {}", best_time);
-    println!("Quality: {}", best_qual);
-    cache.print_backtrace(&best_qst);
-    println!("hits: {}", cache.hits);
-    println!("items: {}", cache.items);
-    println!("{}ms", start.elapsed().as_millis());
-    if options.outfile.len() > 0 {
-        write(options.outfile, bincode::serialize(&cache).unwrap()).expect("Failed to export cache");
+        cache.print_macro(&best_qst);
+        for c in finisher.chars() {
+            let (name, wait) = convert_char(c);
+            println!("/ac '{}' <wait.{}>", name, wait);
+            if c == 'f' {
+                println!("/ac 'Focused Synthesis' <wait.3>");
+            } else if c == 'i' {
+                println!("/ac 'Intensive Synthesis' <wait.3>");
+            }
+        }
+        println!("Best time: {}", best_time);
+        println!("Quality: {}", best_qual);
+        cache.print_backtrace(&best_qst);
+        println!("hits: {}", cache.hits);
+        println!("items: {}", cache.items);
+        println!("{}ms", start.elapsed().as_millis());
+        if options.outfile.len() > 0 {
+            write(options.outfile, bincode::serialize(&cache).unwrap()).expect("Failed to export cache");
+        }
     }
 }
