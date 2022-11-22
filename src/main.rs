@@ -5,7 +5,6 @@ use std::fs::read;
 use std::fs::write;
 use bincode;
 use prog::Finisher;
-use std::env;
 use serde::{Serialize, Deserialize};
 use std::io::BufReader;
 use std::fs::File;
@@ -14,7 +13,6 @@ use serde_json;
 #[derive(Serialize, Deserialize)]
 struct Statline {
     time: u8,
-    check_time: bool,
     cp: u16,
     cms: u16,
     ctrl: u16,
@@ -27,6 +25,19 @@ struct Statline {
 
 fn load_recipe() -> Statline {
     let f = File::open("recipe.json").unwrap();
+    let rdr = BufReader::new(f);
+    serde_json::from_reader(rdr).unwrap()
+}
+
+
+#[derive(Serialize, Deserialize)]
+struct Options {
+    infile: String,
+    outfile: String,
+    check_time: bool
+}
+fn load_options() -> Options {
+    let f = File::open("options.json").unwrap();
     let rdr = BufReader::new(f);
     serde_json::from_reader(rdr).unwrap()
 }
@@ -186,17 +197,15 @@ fn convert_char(c: char) -> (&'static str, i32) {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let options = load_options();
 
-    let input = &args[1];
-    let output = &args[2];
     let mut cache: qual::DPCache;
 
     let start = Instant::now();
-    if input.len() > 1 {
-        cache = bincode::deserialize(&read(input).unwrap()).unwrap();
+    if options.infile.len() > 0 {
+        cache = bincode::deserialize(&read(options.infile).unwrap()).unwrap();
     } else {
-        cache = qual::DPCache::new();
+        cache = qual::DPCache::new(options.check_time);
     }
     println!("Cache loaded");
     let result = check(&mut cache);
@@ -237,7 +246,7 @@ fn main() {
     println!("hits: {}", cache.hits);
     println!("items: {}", cache.items);
     println!("{}ms", start.elapsed().as_millis());
-    if output.len() > 1 {
-        write(output, bincode::serialize(&cache).unwrap()).expect("Failed to export cache");
+    if options.outfile.len() > 0 {
+        write(options.outfile, bincode::serialize(&cache).unwrap()).expect("Failed to export cache");
     }
 }

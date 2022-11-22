@@ -5,15 +5,15 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Debug)]
 pub struct State {
-    pub time: u8, // 0-89, 7 bits
+    pub time: u8, // 0-89, 7 bits, REMOVE
     pub iq: u8, // 0-10, 4 bits
-    pub cp: u16, // 0-699, 10 bits
+    pub cp: u16, // 0-1023, 10 bits
     pub dur: i8, // 0-16, 5 bits
     pub manip: i8, // 0-8, 4 bits
     pub wn: i8, // 0-8, 4 bits
-    pub inno: i8,
-    pub gs: i8, 
-    pub has: bool,
+    pub inno: i8, // 0-4, 3 bits
+    pub gs: i8, // 0-3, 2 bits
+    pub has: bool, // 1 bit
 }
 
 impl State {
@@ -31,7 +31,7 @@ impl State {
         }
     }
 
-    pub fn index(&self) -> u64 {
+    pub fn index(&self, check_time: bool) -> u64 {
         (self.has as u64) // 1
         + ((self.gs as u64) << 1) // 2
         + ((self.inno as u64) << 3) // 3
@@ -40,15 +40,12 @@ impl State {
         + ((self.dur as u64) << 14) // 5
         + ((self.cp as u64) << 19) // 10
         + ((self.iq as u64) << 29) // 4
-        + ((self.time as u64) << 33) // 7
+        + if check_time {(self.time as u64) << 33} else {0}  // 7
         // the overall space requirement is
         // 90 * 11 * 700 * 17 * 9 * 9 * 5 * 4 * 2 = 38B
         // too large for an array so a hashmap is best
     }
-
-    pub fn index_timeless(&self) -> u32 {
-        self.index() as u32
-    }
+    
  }
 
 impl fmt::Display for State {
@@ -62,12 +59,13 @@ impl fmt::Display for State {
 pub struct DPCache {
     cache: HashMap<u64, u64>,
     pub hits: u64,
-    pub items: u64
+    pub items: u64,
+    check_time: bool
 }
 
 
-fn combine_method(qual: u16, method: u8, state: &State) -> u64 {
-    ((qual as u64) << 48) + ((method as u64) << 40) + state.index()
+fn combine_method(qual: u16, method: u8, state: &State, check_time: bool) -> u64 {
+    ((qual as u64) << 48) + ((method as u64) << 40) + state.index(check_time)
 }
 
 pub fn unpack_method(res: u64) -> (u16, u8, u64) {
@@ -87,11 +85,12 @@ static ACTIONS: [&str; 20] = ["(finished)", "",
     "Observe", "Byregot's", "Precise Touch"];
 
 impl DPCache {
-    pub fn new() -> DPCache {
+    pub fn new(check_time: bool) -> DPCache {
         DPCache {
             cache: HashMap::new(),
             hits: 0,
-            items: 0
+            items: 0,
+            check_time
         }
     }
 
@@ -104,7 +103,7 @@ impl DPCache {
     }
 
     pub fn check(&self, st: &State) -> Option<u64> {
-        let ind = st.index();
+        let ind = st.index(self.check_time);
         match self.get(ind) {
             Some(ret) => Some(*ret),
             None => None
@@ -112,14 +111,14 @@ impl DPCache {
     }
 
     pub fn query(&mut self, st: &State) -> u64 {
-        let ind = st.index();
+        let ind = st.index(self.check_time);
         self.hits += 1;
         match self.get(ind) {
             Some(ret) => {return *ret;}
             None => {self.hits -= 1;}
         }
         let State {time, iq, cp, dur, manip, wn, inno, gs, has} = st;
-        if *cp < 7 || *time < 2 { 
+        if *cp < 7 || (*time < 2 && self.check_time) { 
             return 0; 
         }
         //println!("EVAL {} {} {} {} {} {} {} {} {}", time, iq, cp, dur, manip, wn, inno, gs, has);
@@ -142,7 +141,7 @@ impl DPCache {
                 has: *has
             };
             let qual = apply_igs(UNIT, *inno, *gs, *iq);
-            res[1] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 1, &new_state);
+            res[1] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 1, &new_state, self.check_time);
         }
         // Standard
         if (*dur >= 2 - min(*wn, 1)) && *cp >= 32 && *time >= 3 {
@@ -158,7 +157,7 @@ impl DPCache {
                 has: *has
             };
             let qual = apply_igs(UNIT * 5 / 4, *inno, *gs, *iq);
-            res[2] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 2, &new_state);
+            res[2] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 2, &new_state, self.check_time);
         }
         // Advanced
         if (*dur >= 2 - min(*wn, 1)) && *cp >= 46 && *time >= 3 {
@@ -174,7 +173,7 @@ impl DPCache {
                 has: *has
             };
             let qual = apply_igs(UNIT * 3 / 2, *inno, *gs, *iq);
-            res[3] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 3, &new_state);
+            res[3] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 3, &new_state, self.check_time);
         }
         // Standard Combo
         if (*dur >= 4 - min(*wn, 2) - min(*manip, 1)) && *cp >= 36 && *time >= 6 {
@@ -191,7 +190,7 @@ impl DPCache {
             };
             let qual = apply_igs(UNIT, *inno, *gs, *iq)
                 + apply_igs(UNIT * 5 / 4, *inno - 1, 0, min(*iq + 1, 10));
-            res[4] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 4, &new_state);
+            res[4] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 4, &new_state, self.check_time);
         }
         // Advanced Combo
         if (*dur >= 6 - min(*wn, 3) - min(*manip, 2)) && *cp >= 54 && *time >= 9 {
@@ -209,7 +208,7 @@ impl DPCache {
             let qual = apply_igs(UNIT, *inno, *gs, *iq)
                 + apply_igs(UNIT * 5 / 4, inno - 1, 0, min(iq + 1, 10))
                 + apply_igs(UNIT * 3 / 2, inno - 2, 0, min(iq + 2, 10));
-            res[5] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 5, &new_state);
+            res[5] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 5, &new_state, self.check_time);
         }
         // Focused Touch
         if (dur + min(*manip, 1) >= if *wn > 1 {1} else {2}) && *cp >= 25 && *time >= 5 {
@@ -225,7 +224,7 @@ impl DPCache {
                 has: *has
             };
             let qual = apply_igs(UNIT * 3 / 2, inno - 1, gs - 1, *iq);
-            res[6] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 6, &new_state);
+            res[6] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 6, &new_state, self.check_time);
         }
         // Prudent
         if *dur >= 1 && *cp >= 25 && *wn == 0 && *time >= 3 {
@@ -241,7 +240,7 @@ impl DPCache {
                 has: *has
             };
             let qual = apply_igs(UNIT, *inno, *gs, *iq);
-            res[7] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 7, &new_state);
+            res[7] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 7, &new_state, self.check_time);
         }
         // Prep
         if (*dur >= 4 - (if *wn > 0 {2} else {0})) && *cp >= 40 && *time >= 3 {
@@ -257,7 +256,7 @@ impl DPCache {
                 has: *has
             };
             let qual = apply_igs(UNIT * 2, *inno, *gs, *iq);
-            res[8] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 8, &new_state);
+            res[8] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 8, &new_state, self.check_time);
         }
         // Trained Finesse
         if *iq == 10 && *cp >= 32 && *time >= 3 {
@@ -273,7 +272,7 @@ impl DPCache {
                 has: *has
             };
             let qual = apply_igs(UNIT, *inno, *gs, *iq);
-            res[9] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 9, &new_state);
+            res[9] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 9, &new_state, self.check_time);
         }
         // wn1
         if *cp >= 56 && *time >= 2 {
@@ -288,7 +287,7 @@ impl DPCache {
                 gs: max(gs - 1, 0),
                 has: *has
             };
-            res[10] = combine_method((self.query(&new_state) >> 48) as u16, 10, &new_state);
+            res[10] = combine_method((self.query(&new_state) >> 48) as u16, 10, &new_state, self.check_time);
         }
         // wn2
         if *cp >= 98 && *time >= 2 {
@@ -303,7 +302,7 @@ impl DPCache {
                 gs: max(gs - 1, 0),
                 has: *has
             };
-            res[11] = combine_method((self.query(&new_state) >> 48) as u16, 11, &new_state);
+            res[11] = combine_method((self.query(&new_state) >> 48) as u16, 11, &new_state, self.check_time);
         }
         // manip
         if *cp >= 96 && *time >= 2 {
@@ -318,7 +317,7 @@ impl DPCache {
                 gs: max(gs - 1, 0),
                 has: *has
             };
-            res[12] = combine_method((self.query(&new_state) >> 48) as u16, 12, &new_state);
+            res[12] = combine_method((self.query(&new_state) >> 48) as u16, 12, &new_state, self.check_time);
         }
         // MM
         if *cp >= 88 && *time >= 2 {
@@ -333,7 +332,7 @@ impl DPCache {
                 gs: max(gs - 1, 0),
                 has: *has
             };
-            res[13] = combine_method((self.query(&new_state) >> 48) as u16, 13, &new_state);
+            res[13] = combine_method((self.query(&new_state) >> 48) as u16, 13, &new_state, self.check_time);
         }
         // inno
         if *cp >= 18 && *time >= 2 {
@@ -348,7 +347,7 @@ impl DPCache {
                 gs: max(gs - 1, 0),
                 has: *has
             };
-            res[14] = combine_method((self.query(&new_state) >> 48) as u16, 14, &new_state);
+            res[14] = combine_method((self.query(&new_state) >> 48) as u16, 14, &new_state, self.check_time);
         }
         //gs
         if *cp >= 32 && *time >= 2 {
@@ -363,7 +362,7 @@ impl DPCache {
                 gs: 3,
                 has: *has
             };
-            res[15] = combine_method((self.query(&new_state) >> 48) as u16, 15, &new_state);
+            res[15] = combine_method((self.query(&new_state) >> 48) as u16, 15, &new_state, self.check_time);
         }
         /*
         if *cp >= 7 && *time >= 2 {
@@ -378,7 +377,7 @@ impl DPCache {
                 gs: max(gs - 1, 0),
                 has: *has
             };
-            res[16] = combine_method((self.query(&new_state) >> 48) as u16, 16, &new_state);
+            res[16] = combine_method((self.query(&new_state) >> 48) as u16, 16, &new_state, self.check_time);
         }*/
         // byregot
         if (*dur >= 2 - min(*wn, 1)) && *cp >= 24 && *iq > 0 && *time >= 3 {
@@ -394,7 +393,7 @@ impl DPCache {
                 has: *has
             };
             let qual = apply_igs(UNIT * (10 + 2 * *iq as u16) / 10, *inno, *gs, *iq);
-            res[17] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 17, &new_state);
+            res[17] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 17, &new_state, self.check_time);
         }
         // precise
         if (*dur >= 2 - min(*wn, 1)) && *cp >= 18 && *has && *time >= 3 {
@@ -410,7 +409,7 @@ impl DPCache {
                 has: false
             };
             let qual = apply_igs(UNIT * 3 / 2, *inno, *gs, *iq);
-            res[18] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 18, &new_state);
+            res[18] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 18, &new_state, self.check_time);
         }
         let ret = *res.iter().max().unwrap();
         self.insert(ind, ret);
@@ -418,7 +417,7 @@ impl DPCache {
     }
 
     pub fn print_backtrace(&self, st: &State) {
-        println!("START {}", State::unpack(st.index()));
+        println!("START {}", State::unpack(st.index(self.check_time)));
         let mut prev = self.check(st).unwrap_or_else(|| 0);
         let (mut qual, mut method, mut last) = unpack_method(prev);
         let mut orig = qual;
@@ -503,7 +502,7 @@ impl DPCache {
     }
 
     pub fn check_time(&mut self, st: &State) -> u8{
-        let mut prev = st.index();
+        let mut prev = st.index(self.check_time);
         let mut curr = self.query(st);
         let (_qual,  mut method, mut next) = unpack_method(curr);
         while method > 0 {

@@ -1,13 +1,13 @@
 {
-    "time": 45,
-    "check_time": true,
-    "cp": 700,
-    "cms": 4000,
-    "ctrl": 4000,
+    "time": 90,
+    "check_time": false,
+    "cp": 691,
+    "cms": 3822,
+    "ctrl": 3792,
 
     "rlvl": 610,
-    "dur": 35,
-    "prog": 3696,
-    "qual": 8200,
-    "has": false
+    "dur": 70,
+    "prog": 5060,
+    "qual": 12696,
+    "has": true
 }
