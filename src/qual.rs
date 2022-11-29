@@ -126,7 +126,7 @@ impl DPCache {
         if self.items % 1000000 == 0 {
             println!("Items: {}", self.items);
         }
-        let mut res = [0; 20];
+        let mut res = [ind; 20];
         // Basic
         if (*dur >= 2 - min(*wn, 1)) && *cp >= 18 && *time >= 3 {
             let new_state = State {
@@ -501,7 +501,7 @@ impl DPCache {
         }
     }
 
-    pub fn check_time(&mut self, st: &State) -> u8{
+    pub fn check_endstate(&mut self, st: &State) -> State {
         let mut prev = st.index(self.check_time);
         let mut curr = self.query(st);
         let (_qual,  mut method, mut next) = unpack_method(curr);
@@ -511,6 +511,6 @@ impl DPCache {
             curr = match self.get(next) {None => 0, Some(t) => *t};
             (_, method, next) = unpack_method(curr);
         }
-        return State::unpack(prev).time;
+        return State::unpack(prev);
     }
 }

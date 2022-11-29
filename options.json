@@ -1,6 +1,11 @@
 {
-    "mode": "recipe",
-    "infile": "",
-    "outfile": "",
-    "check_time": false
+    "mode": "gearset",
+    "infile": "cache35.bcode",
+    "outfile": "cache35.bcode",
+    "check_time": false,
+    "bounds": {
+        "cms": [3700, 4208],
+        "ctrl": [3184, 3917],
+        "cp": [486, 694]
+    }
 }
