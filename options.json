@@ -1,11 +1,12 @@
 {
     "mode": "gearset",
-    "infile": "cache35.bcode",
-    "outfile": "cache35.bcode",
+    "infile": "cache70.bcode",
+    "outfile": "cache70.bcode",
     "check_time": false,
+    "_comment_": "USE NON-SPECIALIST BOUNDS",
     "bounds": {
-        "cms": [3700, 4208],
-        "ctrl": [3184, 3917],
-        "cp": [486, 694]
+        "cms": [3700, 4188],
+        "ctrl": [3184, 3897],
+        "cp": [486, 679]
     }
 }

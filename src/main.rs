@@ -211,6 +211,16 @@ fn convert_char(c: char) -> (&'static str, i32) {
     }
 }
 
+fn print_char(c: char) {
+    let (name, wait) = convert_char(c);
+    println!("/ac '{}' <wait.{}>", name, wait);
+    if c == 'f' {
+        println!("/ac 'Focused Synthesis' <wait.3>");
+    } else if c == 'i' {
+        println!("/ac 'Intensive Synthesis' <wait.3>");
+    }
+}
+
 #[derive(PartialEq, Eq, Hash)]
 struct Solution {
     cms: u16,
@@ -227,12 +237,12 @@ impl Solution {
 
 impl fmt::Display for Solution {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}/{}/{}/{}", self.cms, self.ctrl, self.cp, if self.has {"T"} else {"F"})
+        write!(f, "{}/{}/{}/{}", self.cms, self.ctrl, self.cp, self.has)
     }
 }
 
 fn main() {
-    let options = load_options();
+    let mut options = load_options();
     let mut cache: qual::DPCache;
 
     let start = Instant::now();
@@ -247,33 +257,14 @@ fn main() {
         let SimResult {best_rot, best_qst, best_qual, best_time} = result;
         let finisher = format!("{}", best_rot.finisher.desc);
         for c in best_rot.opener.chars() {
-            let (name, wait) = convert_char(c);
-            println!("/ac '{}' <wait.{}>", name, wait);
-            if c == 'f' {
-                println!("/ac 'Focused Synthesis' <wait.3>");
-            } else if c == 'i' {
-                println!("/ac 'Intensive Synthesis' <wait.3>");
-            }
+            print_char(c);
         }
         if best_rot.extra != ' ' {
-            let c = best_rot.extra; 
-            let (name, wait) = convert_char(best_rot.extra);
-            println!("/ac '{}' <wait.{}>", name, wait);
-            if c == 'f' {
-                println!("/ac 'Focused Synthesis' <wait.3>");
-            } else if c == 'i' {
-                println!("/ac 'Intensive Synthesis' <wait.3>");
-            }
+            print_char(best_rot.extra);
         }
         cache.print_macro(&best_qst);
         for c in finisher.chars() {
-            let (name, wait) = convert_char(c);
-            println!("/ac '{}' <wait.{}>", name, wait);
-            if c == 'f' {
-                println!("/ac 'Focused Synthesis' <wait.3>");
-            } else if c == 'i' {
-                println!("/ac 'Intensive Synthesis' <wait.3>");
-            }
+            print_char(c);
         }
         println!("Best time: {}", best_time);
         println!("Quality: {}", best_qual);
@@ -283,10 +274,15 @@ fn main() {
         println!("{}ms", start.elapsed().as_millis());
     } else if options.mode == "gearset" {
         let recipe = load_recipe();
+        if recipe.has { // Raise upper bound to allow specialist
+            options.bounds.cms.1 += 20;
+            options.bounds.ctrl.1 += 20;
+            options.bounds.cp.1 += 15;
+        }
         let min_prog_unit: u16 = ((options.bounds.cms.0 as f64 * 10. / LV_90_PROG_DIV + 2.) * if recipe.rlvl >= 580 {LV_90_PROG_MUL} else {100.} / 100.).floor() as u16;
         let max_prog_unit: u16 = ((options.bounds.cms.1 as f64 * 10. / LV_90_PROG_DIV + 2.) * if recipe.rlvl >= 580 {LV_90_PROG_MUL} else {100.} / 100.).floor() as u16;
         let min_qual_unit: u16 = ((options.bounds.ctrl.0 as f64 * 10. / LV_90_QUAL_DIV + 35.) * if recipe.rlvl >= 580 {LV_90_QUAL_MUL} else {100.} / 100.).floor() as u16;
-        let max_qual_unit: u16 = ((options.bounds.ctrl.1 as f64 * 10. / LV_90_QUAL_DIV + 35.) * if recipe.rlvl >= 580 {LV_90_QUAL_MUL} else {100.} / 100.).floor() as u16;
+        //let max_qual_unit: u16 = ((options.bounds.ctrl.1 as f64 * 10. / LV_90_QUAL_DIV + 35.) * if recipe.rlvl >= 580 {LV_90_QUAL_MUL} else {100.} / 100.).floor() as u16;
         dbg!(min_prog_unit, min_qual_unit);
         let mut solutions: HashSet<Solution> = HashSet::new();
         for target_cp in options.bounds.cp.0..=options.bounds.cp.1 {
@@ -322,7 +318,7 @@ fn main() {
                                 Some((st, reflect)) => {qst = st; bonus_qual = if reflect {qual::UNIT} else {0};}
                                 None => continue
                             }
-                            if recipe.has && has == 0 {
+                            if recipe.has && has == 0 { // Special check to handle recipe HaS being weird
                                 if qst.has {
                                     qst.has = false;
                                 } else {
