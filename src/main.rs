@@ -1,6 +1,7 @@
 pub mod qual;
 pub mod prog;
 use std::collections::HashSet;
+use std::error;
 use std::time::Instant;
 use std::fs::read;
 use std::fs::write;
@@ -29,12 +30,20 @@ struct Statline {
     materials: Option<Materials>
 }
 
-fn load_recipe() -> Statline {
-    let f = File::open("recipe.json").unwrap();
-    let rdr = BufReader::new(f);
-    serde_json::from_reader(rdr).unwrap()
+impl Statline {
+    fn load(filename: String) -> Result<Statline, Box<dyn error::Error>> {
+        let f = File::open(filename);
+        match f {
+            Ok(res) => {
+                match serde_json::from_reader(BufReader::new(res)) {
+                    Ok(res) => {Ok(res)}
+                    Err(err) => {Err(Box::new(err))}
+                }
+            },
+            Err(err) => {Err(Box::new(err))}
+        }
+    }
 }
-
 
 #[derive(Serialize, Deserialize)]
 struct Bounds {
@@ -46,8 +55,9 @@ struct Bounds {
 #[derive(Serialize, Deserialize)]
 struct Options {
     mode: String,
-    infile: String,
-    outfile: String,
+    incache: String,
+    outcache: String,
+    recipe_file: String,
     check_time: bool,
     bounds: Bounds
 }
@@ -105,9 +115,7 @@ struct SimResult<'a> {
     best_qst: qual::State
 }
 
-fn check_recipe(cache: &mut qual::DPCache) -> SimResult {
-    let mut recipe = load_recipe();
-    println!("Recipe loaded");
+fn check_recipe<'a>(cache: &mut qual::DPCache, recipe: &mut Statline) -> SimResult<'a> {
     let prog_unit: u16 = ((recipe.cms as f64 * 10. / LV_90_PROG_DIV + 2.) * if recipe.rlvl >= 580 {LV_90_PROG_MUL} else {100.} / 100.).floor() as u16;
     let qual_unit: u16 = ((recipe.ctrl as f64 * 10. / LV_90_QUAL_DIV + 35.) * if recipe.rlvl >= 580 {LV_90_QUAL_MUL} else {100.} / 100.).floor() as u16;
     println!("Prog/100: {}", prog_unit);
@@ -246,14 +254,22 @@ fn main() {
     let mut cache: qual::DPCache;
 
     let start = Instant::now();
-    if options.infile.len() > 0 {
-        cache = bincode::deserialize(&read(options.infile).unwrap()).unwrap();
+    if options.incache.len() > 0 {
+        cache = bincode::deserialize(&read(options.incache).unwrap()).unwrap();
     } else {
         cache = qual::DPCache::new(options.check_time);
     }
     println!("Cache loaded");
+    let recipe = Statline::load(options.recipe_file);
+    let mut recipe = match recipe {
+        Ok(res) => {res}
+        Err(err) => {
+            println!("Error: {}", err);
+            return;
+        }
+    };
     if options.mode == "recipe" {
-        let result = check_recipe(&mut cache);
+        let result = check_recipe(&mut cache, &mut recipe);
         let SimResult {best_rot, best_qst, best_qual, best_time} = result;
         let finisher = format!("{}", best_rot.finisher.desc);
         for c in best_rot.opener.chars() {
@@ -273,7 +289,6 @@ fn main() {
         println!("items: {}", cache.items);
         println!("{}ms", start.elapsed().as_millis());
     } else if options.mode == "gearset" {
-        let recipe = load_recipe();
         if recipe.has { // Raise upper bound to allow specialist
             options.bounds.cms.1 += 20;
             options.bounds.ctrl.1 += 20;
@@ -367,7 +382,7 @@ fn main() {
             println!("{}", sol);
         }
     }
-    if options.outfile.len() > 0 {
-        write(options.outfile, bincode::serialize(&cache).unwrap()).expect("Failed to export cache");
+    if options.outcache.len() > 0 {
+        write(options.outcache, bincode::serialize(&cache).unwrap()).expect("Failed to export cache");
     }
 }
