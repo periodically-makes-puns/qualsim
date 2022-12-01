@@ -259,7 +259,7 @@ fn main() {
     } else {
         cache = qual::DPCache::new(options.check_time);
     }
-    println!("Cache loaded");
+    println!("Cache loaded in {}ms", start.elapsed().as_millis());
     let recipe = Statline::load(options.recipe_file);
     let mut recipe = match recipe {
         Ok(res) => {res}
@@ -287,7 +287,6 @@ fn main() {
         cache.print_backtrace(&best_qst);
         println!("hits: {}", cache.hits);
         println!("items: {}", cache.items);
-        println!("{}ms", start.elapsed().as_millis());
     } else if options.mode == "gearset" {
         if recipe.has { // Raise upper bound to allow specialist
             options.bounds.cms.1 += 20;
@@ -382,7 +381,9 @@ fn main() {
             println!("{}", sol);
         }
     }
+    println!("Main operation completed by {}ms", start.elapsed().as_millis());
     if options.outcache.len() > 0 {
         write(options.outcache, bincode::serialize(&cache).unwrap()).expect("Failed to export cache");
     }
+    println!("{}ms", start.elapsed().as_millis());
 }

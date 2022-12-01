@@ -1,13 +1,13 @@
 {
     "mode": "gearset",
-    "incache": "cache35.bcode",
-    "outcache": "cache35.bcode",
-    "recipe_file": "recipe35.json",
+    "incache": "",
+    "outcache": "nu_cache.bcode",
+    "recipe_file": "recipe70.json",
     "check_time": false,
     "_comment_": "USE NON-SPECIALIST BOUNDS",
     "bounds": {
         "cms": [3700, 4188],
         "ctrl": [3184, 3897],
-        "cp": [486, 679]
+        "cp": [486, 700]
     }
 }
