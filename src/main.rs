@@ -127,7 +127,7 @@ fn check_recipe<'a>(cache: &mut qual::DPCache, recipe: &mut Statline, options: &
     let mut best_qual = 0;
     let mut best_rot: Option<Rotation> = None;
     let mut best_qst: Option<qual::State> = None;
-    while min < max {
+    while min <= max {
         dbg!(min, t, max);
         recipe.time = t;
         best_qual = 0;
@@ -184,12 +184,11 @@ fn check_recipe<'a>(cache: &mut qual::DPCache, recipe: &mut Statline, options: &
                 }
             }
         }
+        dbg!(t, best_qual);
+        if max == min {break;}
         if best_qual >= recipe.qual {
             max = t;
         } else {
-            if min == t && max < recipe.time {
-                max += 1;
-            }
             min = t + 1;
         }
         t = (max + min) / 2;

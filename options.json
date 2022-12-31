@@ -1,9 +1,9 @@
 {
     "mode": "recipe",
-    "incache": "",
+    "incache": "cache35.bcode",
     "outcache": "cache35.bcode",
     "recipe_file": "recipe35.json",
-    "check_time": false,
+    "check_time": true,
     "_comment_": "USE NON-SPECIALIST BOUNDS",
     "bounds": {
         "cms": [3700, 4188],
