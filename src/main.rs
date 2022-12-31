@@ -31,7 +31,7 @@ struct Statline {
 }
 
 impl Statline {
-    fn load(filename: String) -> Result<Statline, Box<dyn error::Error>> {
+    fn load(filename: &String) -> Result<Statline, Box<dyn error::Error>> {
         let f = File::open(filename);
         match f {
             Ok(res) => {
@@ -115,12 +115,12 @@ struct SimResult<'a> {
     best_qst: qual::State
 }
 
-fn check_recipe<'a>(cache: &mut qual::DPCache, recipe: &mut Statline) -> SimResult<'a> {
+fn check_recipe<'a>(cache: &mut qual::DPCache, recipe: &mut Statline, options: &Options) -> SimResult<'a> {
     let prog_unit: u16 = ((recipe.cms as f64 * 10. / LV_90_PROG_DIV + 2.) * if recipe.rlvl >= 580 {LV_90_PROG_MUL} else {100.} / 100.).floor() as u16;
     let qual_unit: u16 = ((recipe.ctrl as f64 * 10. / LV_90_QUAL_DIV + 35.) * if recipe.rlvl >= 580 {LV_90_QUAL_MUL} else {100.} / 100.).floor() as u16;
     println!("Prog/100: {}", prog_unit);
     println!("Qual/100: {}", qual_unit);
-    let mut min = 0;
+    let mut min = if options.check_time {0} else {recipe.time - 1};
     let mut t = (recipe.time + min) / 2;
     let mut max = recipe.time;
     
@@ -255,12 +255,12 @@ fn main() {
 
     let start = Instant::now();
     if options.incache.len() > 0 {
-        cache = bincode::deserialize(&read(options.incache).unwrap()).unwrap();
+        cache = bincode::deserialize(&read(&options.incache).unwrap()).unwrap();
     } else {
         cache = qual::DPCache::new(options.check_time);
     }
-    println!("Cache loaded in {}ms", start.elapsed().as_millis());
-    let recipe = Statline::load(options.recipe_file);
+    println!("Cache loaded in +{}ms", start.elapsed().as_millis());
+    let recipe = Statline::load(&options.recipe_file);
     let mut recipe = match recipe {
         Ok(res) => {res}
         Err(err) => {
@@ -269,7 +269,7 @@ fn main() {
         }
     };
     if options.mode == "recipe" {
-        let result = check_recipe(&mut cache, &mut recipe);
+        let result = check_recipe(&mut cache, &mut recipe, &options);
         let SimResult {best_rot, best_qst, best_qual, best_time} = result;
         let finisher = format!("{}", best_rot.finisher.desc);
         for c in best_rot.opener.chars() {
@@ -297,7 +297,7 @@ fn main() {
         let max_prog_unit: u16 = ((options.bounds.cms.1 as f64 * 10. / LV_90_PROG_DIV + 2.) * if recipe.rlvl >= 580 {LV_90_PROG_MUL} else {100.} / 100.).floor() as u16;
         let min_qual_unit: u16 = ((options.bounds.ctrl.0 as f64 * 10. / LV_90_QUAL_DIV + 35.) * if recipe.rlvl >= 580 {LV_90_QUAL_MUL} else {100.} / 100.).floor() as u16;
         //let max_qual_unit: u16 = ((options.bounds.ctrl.1 as f64 * 10. / LV_90_QUAL_DIV + 35.) * if recipe.rlvl >= 580 {LV_90_QUAL_MUL} else {100.} / 100.).floor() as u16;
-        dbg!(min_prog_unit, min_qual_unit);
+        //dbg!(min_prog_unit, min_qual_unit);
         let mut solutions: HashSet<Solution> = HashSet::new();
         for target_cp in options.bounds.cp.0..=options.bounds.cp.1 {
             for opener in prog::OPENERS {
@@ -381,9 +381,9 @@ fn main() {
             println!("{}", sol);
         }
     }
-    println!("Main operation completed by {}ms", start.elapsed().as_millis());
+    println!("Main operation completed by +{}ms", start.elapsed().as_millis());
     if options.outcache.len() > 0 {
         write(options.outcache, bincode::serialize(&cache).unwrap()).expect("Failed to export cache");
     }
-    println!("{}ms", start.elapsed().as_millis());
+    println!("Cache write finished by +{}ms", start.elapsed().as_millis());
 }
