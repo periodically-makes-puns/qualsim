@@ -1,43 +1,42 @@
 #[derive(Debug, Clone)]
 pub struct State {
     pub time: u8, // 0-89, 7 bits
-    pub iq: u8, // 0-10, 4 bits
+    pub inner_quiet: u8, // 0-10, 4 bits
     pub cp: u16, // 0-699, 10 bits
-    pub dur: i8, // 0-16, 5 bits
-    pub manip: i8, // 0-8, 4 bits
-    pub wn: i8, // 0-8, 4 bits
-    pub ven: i8,
-    pub mm: i8, 
-    pub has: bool,
+    pub durability: i8, // 0-16, 5 bits
+    pub manipulation: i8, // 0-8, 4 bits
+    pub waste_not: i8, // 0-8, 4 bits
+    pub veneration: i8,
+    pub muscle_memory: i8, 
+    pub heart_and_soul: bool,
     pub reflect: bool,
-    pub prog: u16
+    pub progress: u16
 }
 
 
 
 mod actions {
-
     #[derive(PartialEq)]
     pub enum Status {
-        NONE,
-        MANIP,
-        WN,
-        VEN,
-        MM
+        None,
+        Manipulation,
+        WasteNot,
+        Veneration,
+        MuscleMemory
     }
     pub struct Action {
-        pub prog: u16, // Efficiency x10
-        pub dur: i8, // 5dur = 1
+        pub progress: u16, // Efficiency x10
+        pub durability: i8, // 5dur = 1
         pub cp: u16,
         pub status: Status,
         pub duration: i8
     }
 
     impl Action {
-        pub const fn new(prog: u16, dur: i8, cp: u16, status: Status, duration: i8) -> Action {
+        pub const fn new(progress: u16, durability: i8, cp: u16, status: Status, duration: i8) -> Action {
             Action {
-                prog,
-                dur,
+                progress,
+                durability,
                 cp,
                 status,
                 duration
@@ -45,17 +44,17 @@ mod actions {
         }
     }
 
-	pub const BASIC: Action = Action::new(12, 2, 0, Status::NONE, 0 );
-	pub const CAREFUL: Action = Action::new(18, 2, 7, Status::NONE, 0 );
-	pub const FOCUSED: Action = Action::new(20, 2, 12, Status::NONE, 0 );
-	pub const PRUDENT: Action = Action::new(18, 1, 18, Status::NONE, 0 );
-	pub const GROUNDWORK: Action = Action::new(36, 4, 18, Status::NONE, 0 );
-	pub const MUMEN: Action = Action::new(30, 2, 6, Status::MM, 5 );
-	pub const VENER: Action = Action::new(0, 0, 18, Status::VEN, 4 );
-	pub const MANIPULATION: Action = Action::new(0, 0, 96, Status::MANIP, 8 );
-	pub const WN1: Action = Action::new(0, 0, 56, Status::WN, 4 );
-	pub const WN2: Action = Action::new(0, 0, 98, Status::WN, 8 );
-	pub const INTENSIVE: Action = Action::new(40, 2, 6, Status::NONE, 0 );
+	pub const BASIC: Action = Action::new(12, 2, 0, Status::None, 0 );
+	pub const CAREFUL: Action = Action::new(18, 2, 7, Status::None, 0 );
+	pub const FOCUSED: Action = Action::new(20, 2, 12, Status::None, 0 );
+	pub const PRUDENT: Action = Action::new(18, 1, 18, Status::None, 0 );
+	pub const GROUNDWORK: Action = Action::new(36, 4, 18, Status::None, 0 );
+	pub const MUMEN: Action = Action::new(30, 2, 6, Status::MuscleMemory, 5 );
+	pub const VENER: Action = Action::new(0, 0, 18, Status::Veneration, 4 );
+	pub const MANIPULATION: Action = Action::new(0, 0, 96, Status::Manipulation, 8 );
+	pub const WN1: Action = Action::new(0, 0, 56, Status::WasteNot, 4 );
+	pub const WN2: Action = Action::new(0, 0, 98, Status::WasteNot, 8 );
+	pub const INTENSIVE: Action = Action::new(40, 2, 6, Status::None, 0 );
 }
 
 impl State {
@@ -68,9 +67,9 @@ impl State {
 
     pub fn apply_char(&mut self, c: char) {
         if c == 'R' {
-            self.dur -= 2;
+            self.durability -= 2;
             self.cp -= 18;
-            self.iq += 2;
+            self.inner_quiet += 2;
             self.reflect = true;
             self.time += 3;
             return;
@@ -93,54 +92,54 @@ impl State {
     }
 
     pub fn apply_action(&mut self, act: &actions::Action) {
-        let w = self.wn;
-	    let v = self.ven;
-	    let m = self.manip;
-	    let d = self.dur;
+        let w = self.waste_not;
+	    let v = self.veneration;
+	    let m = self.manipulation;
+	    let d = self.durability;
         if act.cp == 12 {
             self.tick_statuses(true);
         }
-        if (act.dur > self.dur * (if self.wn > 0 {2} else {1})) || act.cp > self.cp || (act.dur == 1 && self.wn == 0) {
-            self.wn = w;
-            self.ven = v;
-            self.manip = m;
-            self.dur = d;
+        if (act.durability > self.durability * (if self.waste_not > 0 {2} else {1})) || act.cp > self.cp || (act.durability == 1 && self.waste_not == 0) {
+            self.waste_not = w;
+            self.veneration = v;
+            self.manipulation = m;
+            self.durability = d;
             return;
         }
-        self.dur -= act.dur >> (if self.wn > 0 {1} else {0});
+        self.durability -= act.durability >> (if self.waste_not > 0 {1} else {0});
 	    self.cp -= act.cp;
-	    let mut p = act.prog;
-        if p == 40 {self.has = true;}
-        if self.ven > 0 {p += act.prog / 2;}
-        if self.mm > 0 && p > 0 {
-            p += act.prog;
-            self.mm = 0;
+	    let mut action_progress = act.progress;
+        if action_progress == 40 {self.heart_and_soul = true;}
+        if self.veneration > 0 {action_progress += act.progress / 2;}
+        if self.muscle_memory > 0 && action_progress > 0 {
+            action_progress += act.progress;
+            self.muscle_memory = 0;
         }
-        if p > 0 {
-            if act.prog == 20 {self.time += 2;}
+        if action_progress > 0 {
+            if act.progress == 20 {self.time += 2;}
             self.time += 3;
         } else {
             self.time += 2;
         }
-        self.prog += p;
-        let tick_manip = act.status != actions::Status::MANIP;
+        self.progress += action_progress;
+        let tick_manip = act.status != actions::Status::Manipulation;
         self.tick_statuses(tick_manip);
         match act.status {
-            actions::Status::MANIP => {self.manip = 8;}
-            actions::Status::WN => {self.wn = act.duration;}
-            actions::Status::VEN => {self.ven = 4;}
-            actions::Status::MM => {self.mm = 5;}
+            actions::Status::Manipulation => {self.manipulation = 8;}
+            actions::Status::WasteNot => {self.waste_not = act.duration;}
+            actions::Status::Veneration => {self.veneration = 4;}
+            actions::Status::MuscleMemory => {self.muscle_memory = 5;}
             _ => {}
         }
     }
 
     pub fn tick_statuses(&mut self, tick_manip: bool) {
-        if self.wn > 0 {self.wn -= 1;}
-        if self.ven > 0 {self.ven -= 1;}
-        if self.mm > 0 {self.mm -= 1;}
-        if self.manip > 0 && tick_manip {
-            self.manip -= 1;
-            self.dur += 1;
+        if self.waste_not > 0 {self.waste_not -= 1;}
+        if self.veneration > 0 {self.veneration -= 1;}
+        if self.muscle_memory > 0 {self.muscle_memory -= 1;}
+        if self.manipulation > 0 && tick_manip {
+            self.manipulation -= 1;
+            self.durability += 1;
         }
     }
 }
@@ -148,26 +147,26 @@ impl State {
 pub struct Finisher<'a> {
     pub time: u8,
     pub cp: u16,
-    pub dur: i8,
-    pub prog: u16,
-    pub has: bool,
-    pub desc: &'a str
+    pub durability: i8,
+    pub progress: u16,
+    pub heart_and_soul: bool,
+    pub description: &'a str
 }
 
 impl Finisher<'_> {
-    pub const fn new(time: u8, cp: u16, dur: i8, prog: u16, has: bool, desc: &str) -> Finisher {
+    pub const fn new(time: u8, cp: u16, durability: i8, progress: u16, heart_and_soul: bool, description: &str) -> Finisher {
         Finisher {
             time,
             cp,
-            dur,
-            prog,
-            has,
-            desc
+            durability,
+            progress,
+            heart_and_soul,
+            description
         }
     }
 
     pub fn beats(&self, other: &Self) -> bool {
-        self.cp <= other.cp && self.dur <= other.dur && self.time <= other.time && !(self.has && !other.has)
+        self.cp <= other.cp && self.durability <= other.durability && self.time <= other.time && !(self.heart_and_soul && !other.heart_and_soul)
     }
 }
 

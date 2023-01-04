@@ -76,29 +76,29 @@ const LV_90_QUAL_MUL: f64 = 70.;
 fn convert(recipe: &Statline, pst: &prog::State, finisher: &Finisher, prog_unit: u16) -> Option<(qual::State, bool)> {
     // Converts a prog state to a qual state if possible. If recipe would fail, returns None
     //assert!(pst.prog as u32 * (prog_unit as u32) < recipe.prog * 10, "Opener should not finish craft");
-    if (pst.prog as u32 + finisher.prog as u32) * (prog_unit as u32) < recipe.prog * 10 {
+    if (pst.progress as u32 + finisher.progress as u32) * (prog_unit as u32) < recipe.prog * 10 {
         // Check that finisher finishes craft
         return None
     }
     // check that there are resources remaining
     if recipe.cp < pst.cp + finisher.cp || 
-        recipe.dur < pst.dur + finisher.dur || 
+        recipe.dur < pst.durability + finisher.durability || 
         recipe.time < pst.time + finisher.time || 
-        (!recipe.has && (pst.has || finisher.has)) ||
-        (pst.has && finisher.has) {
+        (!recipe.has && (pst.heart_and_soul || finisher.heart_and_soul)) ||
+        (pst.heart_and_soul && finisher.heart_and_soul) {
         return None
     }
 
     Some((qual::State {
         time: recipe.time - pst.time - finisher.time,
         cp: pst.cp - finisher.cp,
-        iq: pst.iq,
-        dur: pst.dur - finisher.dur,
-        manip: pst.manip,
-        wn: pst.wn,
-        inno: 0,
-        gs: 0,
-        has: recipe.has && !pst.has && !finisher.has
+        inner_quiet: pst.inner_quiet,
+        durability: pst.durability - finisher.durability,
+        manipulation: pst.manipulation,
+        waste_not: pst.waste_not,
+        innovation: 0,
+        great_strides: 0,
+        heart_and_soul: recipe.has && !pst.heart_and_soul && !finisher.heart_and_soul
     }, pst.reflect))
 }
 
@@ -137,23 +137,23 @@ fn check_recipe<'a>(cache: &mut qual::DPCache, recipe: &mut Statline, options: &
             for extra in " bcf".chars() {
                 let mut st = prog::State {
                     time: 0,
-                    iq: 0,
+                    inner_quiet: 0,
                     cp: recipe.cp,
-                    dur: recipe.dur / 5,
-                    manip: 0,
-                    wn: 0,
-                    ven: 0,
-                    mm: 0,
-                    has: recipe.has,
+                    durability: recipe.dur / 5,
+                    manipulation: 0,
+                    waste_not: 0,
+                    veneration: 0,
+                    muscle_memory: 0,
+                    heart_and_soul: recipe.has,
                     reflect: false,
-                    prog: 0
+                    progress: 0
                 };
                 st.apply_opener(opener, extra);
-                if st.prog as u32 * prog_unit as u32 >= recipe.prog * 10 {
+                if st.progress as u32 * prog_unit as u32 >= recipe.prog * 10 {
                     continue;
                 }
                 let good_finishers: Vec<&&Finisher> = prog::FINISHERS.iter().filter(|f| 
-                    (f.prog + st.prog) as u32 * (prog_unit as u32) >= recipe.prog * 10).collect();
+                    (f.progress + st.progress) as u32 * (prog_unit as u32) >= recipe.prog * 10).collect();
                 'outer: for finisher in prog::FINISHERS {
                     for fin2 in &good_finishers {
                         if fin2.beats(finisher) && **fin2 != finisher {
@@ -168,8 +168,8 @@ fn check_recipe<'a>(cache: &mut qual::DPCache, recipe: &mut Statline, options: &
                         Some((st, reflect)) => {qst = st; bonus_qual = if reflect {qual::UNIT} else {0};}
                         None => continue
                     }
-                    dbg!(format!("{}{} {}", opener, extra, finisher.desc));
-                    dbg!((st.prog as u32 + finisher.prog as u32) * prog_unit as u32);
+                    dbg!(format!("{}{} {}", opener, extra, finisher.description));
+                    dbg!((st.progress as u32 + finisher.progress as u32) * prog_unit as u32);
                     let (q, _method, _next) = qual::unpack_method(cache.query(&qst));
                     let q = (q + bonus_qual) as u32 * qual_unit as u32 / qual::UNIT as u32;
                     if q > best_qual {
@@ -270,7 +270,7 @@ fn main() {
     if options.mode == "recipe" {
         let result = check_recipe(&mut cache, &mut recipe, &options);
         let SimResult {best_rot, best_qst, best_qual, best_time} = result;
-        let finisher = format!("{}", best_rot.finisher.desc);
+        let finisher = format!("{}", best_rot.finisher.description);
         for c in best_rot.opener.chars() {
             print_char(c);
         }
@@ -304,24 +304,24 @@ fn main() {
                     for has in 0..=recipe.has as u8 {
                         let mut st = prog::State {
                             time: 0,
-                            iq: 0,
+                            inner_quiet: 0,
                             cp: target_cp,
-                            dur: recipe.dur / 5,
-                            manip: 0,
-                            wn: 0,
-                            ven: 0,
-                            mm: 0,
-                            has: false,
+                            durability: recipe.dur / 5,
+                            manipulation: 0,
+                            waste_not: 0,
+                            veneration: 0,
+                            muscle_memory: 0,
+                            heart_and_soul: false,
                             reflect: false,
-                            prog: 0
+                            progress: 0
                         };
                         st.apply_opener(opener, extra);
-                        if st.prog as u32 * min_prog_unit as u32 >= recipe.prog * 10 {
+                        if st.progress as u32 * min_prog_unit as u32 >= recipe.prog * 10 {
                             continue;
                         }
-                        let opener_prog = st.prog;
+                        let opener_prog = st.progress;
                         let good_finishers: Vec<&&Finisher> = prog::FINISHERS.iter().filter(|f| 
-                            (f.prog + st.prog) as u32 * (max_prog_unit as u32) >= recipe.prog * 10).collect();
+                            (f.progress + st.progress) as u32 * (max_prog_unit as u32) >= recipe.prog * 10).collect();
                         'finLoop: for finisher in good_finishers {
                             let st = st.clone();
                             let res = convert(&recipe, &st, finisher, max_prog_unit);
@@ -332,8 +332,8 @@ fn main() {
                                 None => continue
                             }
                             if recipe.has && has == 0 { // Special check to handle recipe HaS being weird
-                                if qst.has {
-                                    qst.has = false;
+                                if qst.heart_and_soul {
+                                    qst.heart_and_soul = false;
                                 } else {
                                     continue;
                                 }
@@ -341,7 +341,7 @@ fn main() {
                             //dbg!(format!("{}{} {}", opener, extra, finisher.desc));
                             let (q, _method, _next) = qual::unpack_method(cache.query(&qst));
                             let q = (q + bonus_qual) as f64 / qual::UNIT as f64;
-                            let p = (finisher.prog + opener_prog) as f64 / 10.;
+                            let p = (finisher.progress + opener_prog) as f64 / 10.;
                             let min_cms: u16 = (13. * ((recipe.prog as f64 / p).ceil() * 1.25 - 2.)).ceil() as u16;
                             let min_ctrl: u16 = (11.5 * ((recipe.qual as f64 / q).ceil() * 10. / 7. - 35.)).ceil() as u16;
                             //dbg!(min_cms);
@@ -358,7 +358,7 @@ fn main() {
                                 cms: cmp::max(min_cms, options.bounds.cms.0), 
                                 ctrl: cmp::max(min_ctrl, options.bounds.ctrl.0),
                                 cp: target_cp,
-                                has: (has > 0) && !cache.check_endstate(&qst).has
+                                has: (has > 0) && !cache.check_endstate(&qst).heart_and_soul
                             };
                             solutions.retain(|sol| {
                                 !new_sol.beats(sol)

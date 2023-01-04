@@ -6,40 +6,40 @@ use serde::{Serialize, Deserialize};
 #[derive(Debug)]
 pub struct State {
     pub time: u8, // 0-89, 7 bits, REMOVE
-    pub iq: u8, // 0-10, 4 bits
+    pub inner_quiet: u8, // 0-10, 4 bits
     pub cp: u16, // 0-1023, 10 bits
-    pub dur: i8, // 0-16, 5 bits
-    pub manip: i8, // 0-8, 4 bits
-    pub wn: i8, // 0-8, 4 bits
-    pub inno: i8, // 0-4, 3 bits
-    pub gs: i8, // 0-3, 2 bits
-    pub has: bool, // 1 bit
+    pub durability: i8, // 0-16, 5 bits
+    pub manipulation: i8, // 0-8, 4 bits
+    pub waste_not: i8, // 0-8, 4 bits
+    pub innovation: i8, // 0-4, 3 bits
+    pub great_strides: i8, // 0-3, 2 bits
+    pub heart_and_soul: bool, // 1 bit
 }
 
 impl State {
     pub fn unpack(st: u64) -> State {
         State { 
-            time:  ((st & 0x000001FE00000000) >> 33) as u8, // yes
-            iq:    ((st & 0x00000001E0000000) >> 29) as u8, // 4
-            cp:    ((st & 0x000000001FF80000) >> 19) as u16, // 10
-            dur:   ((st & 0x000000000007C000) >> 14) as i8, // 5
-            manip: ((st & 0x0000000000003C00) >> 10) as i8, // 4
-            wn:    ((st & 0x00000000000003C0) >> 06) as i8, // 4
-            inno:  ((st & 0x0000000000000038) >> 03) as i8, // 3
-            gs:    ((st & 0x0000000000000006) >> 01) as i8, // 2
-            has:   ((st & 0x0000000000000001) != 0)  // 1 
+            time:           ((st & 0x000001FE00000000) >> 33) as u8, // yes
+            inner_quiet:    ((st & 0x00000001E0000000) >> 29) as u8, // 4
+            cp:             ((st & 0x000000001FF80000) >> 19) as u16, // 10
+            durability:     ((st & 0x000000000007C000) >> 14) as i8, // 5
+            manipulation:   ((st & 0x0000000000003C00) >> 10) as i8, // 4
+            waste_not:      ((st & 0x00000000000003C0) >> 06) as i8, // 4
+            innovation:     ((st & 0x0000000000000038) >> 03) as i8, // 3
+            great_strides:  ((st & 0x0000000000000006) >> 01) as i8, // 2
+            heart_and_soul: ((st & 0x0000000000000001) != 0)  // 1 
         }
     }
 
     pub fn index(&self, check_time: bool) -> u64 {
-        (self.has as u64) // 1
-        + ((self.gs as u64) << 1) // 2
-        + ((self.inno as u64) << 3) // 3
-        + ((self.wn as u64) << 6) // 4
-        + ((self.manip as u64) << 10) // 4
-        + ((self.dur as u64) << 14) // 5
+        (self.heart_and_soul as u64) // 1
+        + ((self.great_strides as u64) << 1) // 2
+        + ((self.innovation as u64) << 3) // 3
+        + ((self.waste_not as u64) << 6) // 4
+        + ((self.manipulation as u64) << 10) // 4
+        + ((self.durability as u64) << 14) // 5
         + ((self.cp as u64) << 19) // 10
-        + ((self.iq as u64) << 29) // 4
+        + ((self.inner_quiet as u64) << 29) // 4
         + if check_time {(self.time as u64) << 33} else {0}  // 7
         // the overall space requirement is
         // 90 * 11 * 700 * 17 * 9 * 9 * 5 * 4 * 2 = 38B
@@ -51,7 +51,8 @@ impl State {
 impl fmt::Display for State {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "T: {}, I: {}, CP: {}, D: {}, MANIP{}, WN{}, IN{}, GS{}, HaS? {}", 
-            self.time, self.iq, self.cp, self.dur, self.manip, self.wn, self.inno, self.gs, self.has)
+            self.time, self.inner_quiet, self.cp, self.durability, self.manipulation, 
+            self.waste_not, self.innovation, self.great_strides, self.heart_and_soul)
     }
 }
 
@@ -64,16 +65,16 @@ pub struct DPCache {
 }
 
 
-fn combine_method(qual: u16, method: u8, state: &State, check_time: bool) -> u64 {
-    ((qual as u64) << 48) + ((method as u64) << 40) + state.index(check_time)
+fn pack_method(quality: u16, method: u8, state: &State, check_time: bool) -> u64 {
+    ((quality as u64) << 48) + ((method as u64) << 40) + state.index(check_time)
 }
 
-pub fn unpack_method(res: u64) -> (u16, u8, u64) {
-    ((res >> 48) as u16, (res >> 40) as u8, res & ((1 << 40) - 1))
+pub fn unpack_method(packed_result: u64) -> (u16, u8, u64) {
+    ((packed_result >> 48) as u16, (packed_result >> 40) as u8, packed_result & ((1 << 40) - 1))
 }
 
-fn apply_igs(qual: u16, inno: i8, gs: i8, iq: u8) -> u16 {
-    qual * (10 + iq as u16) / 20 * (2 + (if inno > 0 {1} else {0}) + (if gs > 0 {2} else {0}))
+fn apply_igs(quality: u16, innovation: i8, great_strides: i8, inner_quiet: u8) -> u16 {
+    quality * (10 + inner_quiet as u16) / 20 * (2 + (if innovation > 0 {1} else {0}) + (if great_strides > 0 {2} else {0}))
 }
 
 pub static UNIT: u16 = 400;
@@ -94,30 +95,31 @@ impl DPCache {
         }
     }
 
-    pub fn get(&self, ind: u64) -> Option<&u64> {
-        self.cache.get(&ind)
+    pub fn get(&self, index: u64) -> Option<&u64> {
+        self.cache.get(&index)
     }
 
-    pub fn insert(&mut self, ind: u64, res: u64) -> Option<u64> {
-        self.cache.insert(ind, res)
+    pub fn insert(&mut self, index: u64, value: u64) -> Option<u64> {
+        self.cache.insert(index, value)
     }
 
-    pub fn check(&self, st: &State) -> Option<u64> {
-        let ind = st.index(self.check_time);
-        match self.get(ind) {
+    pub fn check(&self, state: &State) -> Option<u64> {
+        let index = state.index(self.check_time);
+        match self.get(index) {
             Some(ret) => Some(*ret),
             None => None
         }
     }
 
-    pub fn query(&mut self, st: &State) -> u64 {
-        let ind = st.index(self.check_time);
+    pub fn query(&mut self, state: &State) -> u64 {
+        let index = state.index(self.check_time);
         self.hits += 1;
-        match self.get(ind) {
+        match self.get(index) {
             Some(ret) => {return *ret;}
             None => {self.hits -= 1;}
         }
-        let State {time, iq, cp, dur, manip, wn, inno, gs, has} = st;
+        let State {time, inner_quiet, cp, durability, manipulation, 
+            waste_not, innovation, great_strides, heart_and_soul} = state;
         if *cp < 7 || (*time < 2 && self.check_time) { 
             return 0; 
         }
@@ -126,243 +128,244 @@ impl DPCache {
         if self.items % 1000000 == 0 {
             println!("Items: {}", self.items);
         }
-        let mut res = [ind; 20];
+        let mut quality_results = [index; 20];
+        // instantiate with current index to preserve information about remaining resources
         // Basic
-        if (*dur >= 2 - min(*wn, 1)) && *cp >= 18 && *time >= 3 {
+        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 18 && *time >= 3 {
             let new_state = State {
                 time: time - 3, 
-                iq: min(iq + 1, 10), 
+                inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 18,
-                dur: dur - 2 + min(*wn, 1) + min(*manip, 1),
-                manip: max(manip - 1, 0),
-                wn: max(wn - 1, 0),
-                inno: max(inno - 1, 0),
-                gs: 0,
-                has: *has
+                durability: durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
+                manipulation: max(manipulation - 1, 0),
+                waste_not: max(waste_not - 1, 0),
+                innovation: max(innovation - 1, 0),
+                great_strides: 0,
+                heart_and_soul: *heart_and_soul
             };
-            let qual = apply_igs(UNIT, *inno, *gs, *iq);
-            res[1] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 1, &new_state, self.check_time);
+            let qual = apply_igs(UNIT, *innovation, *great_strides, *inner_quiet);
+            quality_results[1] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 1, &new_state, self.check_time);
         }
         // Standard
-        if (*dur >= 2 - min(*wn, 1)) && *cp >= 32 && *time >= 3 {
+        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 32 && *time >= 3 {
             let new_state = State {
                 time: time - 3, 
-                iq: min(iq + 1, 10), 
+                inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 32,
-                dur: dur - 2 + min(*wn, 1) + min(*manip, 1),
-                manip: max(manip - 1, 0),
-                wn: max(wn - 1, 0),
-                inno: max(inno - 1, 0),
-                gs: 0,
-                has: *has
+                durability: durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
+                manipulation: max(manipulation - 1, 0),
+                waste_not: max(waste_not - 1, 0),
+                innovation: max(innovation - 1, 0),
+                great_strides: 0,
+                heart_and_soul: *heart_and_soul
             };
-            let qual = apply_igs(UNIT * 5 / 4, *inno, *gs, *iq);
-            res[2] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 2, &new_state, self.check_time);
+            let qual = apply_igs(UNIT * 5 / 4, *innovation, *great_strides, *inner_quiet);
+            quality_results[2] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 2, &new_state, self.check_time);
         }
         // Advanced
-        if (*dur >= 2 - min(*wn, 1)) && *cp >= 46 && *time >= 3 {
+        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 46 && *time >= 3 {
             let new_state = State {
                 time: time - 3, 
-                iq: min(iq + 1, 10), 
+                inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 46,
-                dur: dur - 2 + min(*wn, 1) + min(*manip, 1),
-                manip: max(manip - 1, 0),
-                wn: max(wn - 1, 0),
-                inno: max(inno - 1, 0),
-                gs: 0,
-                has: *has
+                durability: durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
+                manipulation: max(manipulation - 1, 0),
+                waste_not: max(waste_not - 1, 0),
+                innovation: max(innovation - 1, 0),
+                great_strides: 0,
+                heart_and_soul: *heart_and_soul
             };
-            let qual = apply_igs(UNIT * 3 / 2, *inno, *gs, *iq);
-            res[3] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 3, &new_state, self.check_time);
+            let qual = apply_igs(UNIT * 3 / 2, *innovation, *great_strides, *inner_quiet);
+            quality_results[3] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 3, &new_state, self.check_time);
         }
         // Standard Combo
-        if (*dur >= 4 - min(*wn, 2) - min(*manip, 1)) && *cp >= 36 && *time >= 6 {
+        if (*durability >= 4 - min(*waste_not, 2) - min(*manipulation, 1)) && *cp >= 36 && *time >= 6 {
             let new_state = State {
                 time: time - 6, 
-                iq: min(iq + 2, 10), 
+                inner_quiet: min(inner_quiet + 2, 10), 
                 cp: cp - 36,
-                dur: dur - 4 + min(*wn, 2) + min(*manip, 2),
-                manip: max(manip - 2, 0),
-                wn: max(wn - 2, 0),
-                inno: max(inno - 2, 0),
-                gs: 0,
-                has: *has
+                durability: durability - 4 + min(*waste_not, 2) + min(*manipulation, 2),
+                manipulation: max(manipulation - 2, 0),
+                waste_not: max(waste_not - 2, 0),
+                innovation: max(innovation - 2, 0),
+                great_strides: 0,
+                heart_and_soul: *heart_and_soul
             };
-            let qual = apply_igs(UNIT, *inno, *gs, *iq)
-                + apply_igs(UNIT * 5 / 4, *inno - 1, 0, min(*iq + 1, 10));
-            res[4] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 4, &new_state, self.check_time);
+            let qual = apply_igs(UNIT, *innovation, *great_strides, *inner_quiet)
+                + apply_igs(UNIT * 5 / 4, *innovation - 1, 0, min(*inner_quiet + 1, 10));
+            quality_results[4] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 4, &new_state, self.check_time);
         }
         // Advanced Combo
-        if (*dur >= 6 - min(*wn, 3) - min(*manip, 2)) && *cp >= 54 && *time >= 9 {
+        if (*durability >= 6 - min(*waste_not, 3) - min(*manipulation, 2)) && *cp >= 54 && *time >= 9 {
             let new_state = State {
                 time: time - 9, 
-                iq: min(iq + 3, 10), 
+                inner_quiet: min(inner_quiet + 3, 10), 
                 cp: cp - 54,
-                dur: dur - 6 + min(*wn, 3) + min(*manip, 3),
-                manip: max(manip - 3, 0),
-                wn: max(wn - 3, 0),
-                inno: max(inno - 3, 0),
-                gs: 0,
-                has: *has
+                durability: durability - 6 + min(*waste_not, 3) + min(*manipulation, 3),
+                manipulation: max(manipulation - 3, 0),
+                waste_not: max(waste_not - 3, 0),
+                innovation: max(innovation - 3, 0),
+                great_strides: 0,
+                heart_and_soul: *heart_and_soul
             };
-            let qual = apply_igs(UNIT, *inno, *gs, *iq)
-                + apply_igs(UNIT * 5 / 4, inno - 1, 0, min(iq + 1, 10))
-                + apply_igs(UNIT * 3 / 2, inno - 2, 0, min(iq + 2, 10));
-            res[5] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 5, &new_state, self.check_time);
+            let qual = apply_igs(UNIT, *innovation, *great_strides, *inner_quiet)
+                + apply_igs(UNIT * 5 / 4, innovation - 1, 0, min(inner_quiet + 1, 10))
+                + apply_igs(UNIT * 3 / 2, innovation - 2, 0, min(inner_quiet + 2, 10));
+            quality_results[5] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 5, &new_state, self.check_time);
         }
         // Focused Touch
-        if (dur + min(*manip, 1) >= if *wn > 1 {1} else {2}) && *cp >= 25 && *time >= 5 {
+        if (durability + min(*manipulation, 1) >= if *waste_not > 1 {1} else {2}) && *cp >= 25 && *time >= 5 {
             let new_state = State {
                 time: time - 5, 
-                iq: min(iq + 1, 10), 
+                inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 25,
-                dur: dur - (if *wn > 1 {1} else {2}) + min(*manip, 2),
-                manip: max(manip - 2, 0),
-                wn: max(wn - 2, 0),
-                inno: max(inno - 2, 0),
-                gs: 0,
-                has: *has
+                durability: durability - (if *waste_not > 1 {1} else {2}) + min(*manipulation, 2),
+                manipulation: max(manipulation - 2, 0),
+                waste_not: max(waste_not - 2, 0),
+                innovation: max(innovation - 2, 0),
+                great_strides: 0,
+                heart_and_soul: *heart_and_soul
             };
-            let qual = apply_igs(UNIT * 3 / 2, inno - 1, gs - 1, *iq);
-            res[6] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 6, &new_state, self.check_time);
+            let qual = apply_igs(UNIT * 3 / 2, innovation - 1, great_strides - 1, *inner_quiet);
+            quality_results[6] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 6, &new_state, self.check_time);
         }
-        // Prudent
-        if *dur >= 1 && *cp >= 25 && *wn == 0 && *time >= 3 {
+        // Prudent Touch
+        if *durability >= 1 && *cp >= 25 && *waste_not == 0 && *time >= 3 {
             let new_state = State {
                 time: time - 3, 
-                iq: min(iq + 1, 10), 
+                inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 25,
-                dur: dur - 1 + min(*manip, 1),
-                manip: max(manip - 1, 0),
-                wn: 0,
-                inno: max(inno - 1, 0),
-                gs: 0,
-                has: *has
+                durability: durability - 1 + min(*manipulation, 1),
+                manipulation: max(manipulation - 1, 0),
+                waste_not: 0,
+                innovation: max(innovation - 1, 0),
+                great_strides: 0,
+                heart_and_soul: *heart_and_soul
             };
-            let qual = apply_igs(UNIT, *inno, *gs, *iq);
-            res[7] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 7, &new_state, self.check_time);
+            let qual = apply_igs(UNIT, *innovation, *great_strides, *inner_quiet);
+            quality_results[7] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 7, &new_state, self.check_time);
         }
-        // Prep
-        if (*dur >= 4 - (if *wn > 0 {2} else {0})) && *cp >= 40 && *time >= 3 {
+        // Prepratory Touch
+        if (*durability >= 4 - (if *waste_not > 0 {2} else {0})) && *cp >= 40 && *time >= 3 {
             let new_state = State {
                 time: time - 3, 
-                iq: min(*iq + 2, 10), 
+                inner_quiet: min(*inner_quiet + 2, 10), 
                 cp: cp - 40,
-                dur: dur - 4 + (if *wn > 0 {2} else {0}) + min(*manip, 1),
-                manip: max(manip - 1, 0),
-                wn: max(wn - 1, 0),
-                inno: max(inno - 1, 0),
-                gs: 0,
-                has: *has
+                durability: durability - 4 + (if *waste_not > 0 {2} else {0}) + min(*manipulation, 1),
+                manipulation: max(manipulation - 1, 0),
+                waste_not: max(waste_not - 1, 0),
+                innovation: max(innovation - 1, 0),
+                great_strides: 0,
+                heart_and_soul: *heart_and_soul
             };
-            let qual = apply_igs(UNIT * 2, *inno, *gs, *iq);
-            res[8] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 8, &new_state, self.check_time);
+            let qual = apply_igs(UNIT * 2, *innovation, *great_strides, *inner_quiet);
+            quality_results[8] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 8, &new_state, self.check_time);
         }
         // Trained Finesse
-        if *iq == 10 && *cp >= 32 && *time >= 3 {
+        if *inner_quiet == 10 && *cp >= 32 && *time >= 3 {
             let new_state = State {
                 time: time - 3, 
-                iq: 10, 
+                inner_quiet: 10, 
                 cp: cp - 32,
-                dur: dur + min(*manip, 1),
-                manip: max(manip - 1, 0),
-                wn: max(wn - 1, 0),
-                inno: max(inno - 1, 0),
-                gs: 0,
-                has: *has
+                durability: durability + min(*manipulation, 1),
+                manipulation: max(manipulation - 1, 0),
+                waste_not: max(waste_not - 1, 0),
+                innovation: max(innovation - 1, 0),
+                great_strides: 0,
+                heart_and_soul: *heart_and_soul
             };
-            let qual = apply_igs(UNIT, *inno, *gs, *iq);
-            res[9] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 9, &new_state, self.check_time);
+            let qual = apply_igs(UNIT, *innovation, *great_strides, *inner_quiet);
+            quality_results[9] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 9, &new_state, self.check_time);
         }
-        // wn1
+        // Waste Not 1
         if *cp >= 56 && *time >= 2 {
             let new_state = State {
                 time: time - 2, 
-                iq: *iq, 
+                inner_quiet: *inner_quiet, 
                 cp: cp - 56,
-                dur: dur + min(*manip, 1),
-                manip: max(manip - 1, 0),
-                wn: 4,
-                inno: max(inno - 1, 0),
-                gs: max(gs - 1, 0),
-                has: *has
+                durability: durability + min(*manipulation, 1),
+                manipulation: max(manipulation - 1, 0),
+                waste_not: 4,
+                innovation: max(innovation - 1, 0),
+                great_strides: max(great_strides - 1, 0),
+                heart_and_soul: *heart_and_soul
             };
-            res[10] = combine_method((self.query(&new_state) >> 48) as u16, 10, &new_state, self.check_time);
+            quality_results[10] = pack_method((self.query(&new_state) >> 48) as u16, 10, &new_state, self.check_time);
         }
-        // wn2
+        // Waste Not 2
         if *cp >= 98 && *time >= 2 {
             let new_state = State {
                 time: time - 2, 
-                iq: *iq, 
+                inner_quiet: *inner_quiet, 
                 cp: cp - 98,
-                dur: dur + min(*manip, 1),
-                manip: max(manip - 1, 0),
-                wn: 8,
-                inno: max(inno - 1, 0),
-                gs: max(gs - 1, 0),
-                has: *has
+                durability: durability + min(*manipulation, 1),
+                manipulation: max(manipulation - 1, 0),
+                waste_not: 8,
+                innovation: max(innovation - 1, 0),
+                great_strides: max(great_strides - 1, 0),
+                heart_and_soul: *heart_and_soul
             };
-            res[11] = combine_method((self.query(&new_state) >> 48) as u16, 11, &new_state, self.check_time);
+            quality_results[11] = pack_method((self.query(&new_state) >> 48) as u16, 11, &new_state, self.check_time);
         }
-        // manip
+        // Manipulation
         if *cp >= 96 && *time >= 2 {
             let new_state = State {
                 time: time - 2, 
-                iq: *iq, 
+                inner_quiet: *inner_quiet, 
                 cp: cp - 96,
-                dur: *dur,
-                manip: 8,
-                wn: max(wn - 1, 0),
-                inno: max(inno - 1, 0),
-                gs: max(gs - 1, 0),
-                has: *has
+                durability: *durability,
+                manipulation: 8,
+                waste_not: max(waste_not - 1, 0),
+                innovation: max(innovation - 1, 0),
+                great_strides: max(great_strides - 1, 0),
+                heart_and_soul: *heart_and_soul
             };
-            res[12] = combine_method((self.query(&new_state) >> 48) as u16, 12, &new_state, self.check_time);
+            quality_results[12] = pack_method((self.query(&new_state) >> 48) as u16, 12, &new_state, self.check_time);
         }
-        // MM
+        // Master's Mend
         if *cp >= 88 && *time >= 2 {
             let new_state = State {
                 time: time - 2, 
-                iq: *iq, 
+                inner_quiet: *inner_quiet, 
                 cp: cp - 88,
-                dur: *dur + 3 + min(*manip, 1),
-                manip: max(manip - 1, 0),
-                wn: max(wn - 1, 0),
-                inno: max(inno - 1, 0),
-                gs: max(gs - 1, 0),
-                has: *has
+                durability: *durability + 3 + min(*manipulation, 1),
+                manipulation: max(manipulation - 1, 0),
+                waste_not: max(waste_not - 1, 0),
+                innovation: max(innovation - 1, 0),
+                great_strides: max(great_strides - 1, 0),
+                heart_and_soul: *heart_and_soul
             };
-            res[13] = combine_method((self.query(&new_state) >> 48) as u16, 13, &new_state, self.check_time);
+            quality_results[13] = pack_method((self.query(&new_state) >> 48) as u16, 13, &new_state, self.check_time);
         }
-        // inno
+        // Innovation
         if *cp >= 18 && *time >= 2 {
             let new_state = State {
                 time: time - 2, 
-                iq: *iq, 
+                inner_quiet: *inner_quiet, 
                 cp: cp - 18,
-                dur: *dur + min(*manip, 1),
-                manip: max(manip - 1, 0),
-                wn: max(wn - 1, 0),
-                inno: 4,
-                gs: max(gs - 1, 0),
-                has: *has
+                durability: *durability + min(*manipulation, 1),
+                manipulation: max(manipulation - 1, 0),
+                waste_not: max(waste_not - 1, 0),
+                innovation: 4,
+                great_strides: max(great_strides - 1, 0),
+                heart_and_soul: *heart_and_soul
             };
-            res[14] = combine_method((self.query(&new_state) >> 48) as u16, 14, &new_state, self.check_time);
+            quality_results[14] = pack_method((self.query(&new_state) >> 48) as u16, 14, &new_state, self.check_time);
         }
-        //gs
+        // Great Strides
         if *cp >= 32 && *time >= 2 {
             let new_state = State {
                 time: time - 2, 
-                iq: *iq, 
+                inner_quiet: *inner_quiet, 
                 cp: cp - 32,
-                dur: *dur + min(*manip, 1),
-                manip: max(manip - 1, 0),
-                wn: max(wn - 1, 0),
-                inno: max(inno - 1, 0),
-                gs: 3,
-                has: *has
+                durability: *durability + min(*manipulation, 1),
+                manipulation: max(manipulation - 1, 0),
+                waste_not: max(waste_not - 1, 0),
+                innovation: max(innovation - 1, 0),
+                great_strides: 3,
+                heart_and_soul: *heart_and_soul
             };
-            res[15] = combine_method((self.query(&new_state) >> 48) as u16, 15, &new_state, self.check_time);
+            quality_results[15] = pack_method((self.query(&new_state) >> 48) as u16, 15, &new_state, self.check_time);
         }
         /*
         if *cp >= 7 && *time >= 2 {
@@ -379,46 +382,46 @@ impl DPCache {
             };
             res[16] = combine_method((self.query(&new_state) >> 48) as u16, 16, &new_state, self.check_time);
         }*/
-        // byregot
-        if (*dur >= 2 - min(*wn, 1)) && *cp >= 24 && *iq > 0 && *time >= 3 {
+        // Byregot's Blessing
+        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 24 && *inner_quiet > 0 && *time >= 3 {
             let new_state = State {
                 time: time - 3, 
-                iq: 0, 
+                inner_quiet: 0, 
                 cp: cp - 24,
-                dur: *dur - 2 + min(*wn, 1) + min(*manip, 1),
-                manip: max(manip - 1, 0),
-                wn: max(wn - 1, 0),
-                inno: max(inno - 1, 0),
-                gs: 0,
-                has: *has
+                durability: *durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
+                manipulation: max(manipulation - 1, 0),
+                waste_not: max(waste_not - 1, 0),
+                innovation: max(innovation - 1, 0),
+                great_strides: 0,
+                heart_and_soul: *heart_and_soul
             };
-            let qual = apply_igs(UNIT * (10 + 2 * *iq as u16) / 10, *inno, *gs, *iq);
-            res[17] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 17, &new_state, self.check_time);
+            let qual = apply_igs(UNIT * (10 + 2 * *inner_quiet as u16) / 10, *innovation, *great_strides, *inner_quiet);
+            quality_results[17] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 17, &new_state, self.check_time);
         }
-        // precise
-        if (*dur >= 2 - min(*wn, 1)) && *cp >= 18 && *has && *time >= 3 {
+        // Precise Touch
+        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 18 && *heart_and_soul && *time >= 3 {
             let new_state = State {
                 time: time - 3, 
-                iq: min(iq + 2, 10), 
+                inner_quiet: min(inner_quiet + 2, 10), 
                 cp: cp - 18,
-                dur: *dur - 2 + min(*wn, 1) + min(*manip, 1),
-                manip: max(manip - 1, 0),
-                wn: max(wn - 1, 0),
-                inno: max(inno - 1, 0),
-                gs: 0,
-                has: false
+                durability: *durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
+                manipulation: max(manipulation - 1, 0),
+                waste_not: max(waste_not - 1, 0),
+                innovation: max(innovation - 1, 0),
+                great_strides: 0,
+                heart_and_soul: false
             };
-            let qual = apply_igs(UNIT * 3 / 2, *inno, *gs, *iq);
-            res[18] = combine_method((self.query(&new_state) >> 48) as u16 + qual, 18, &new_state, self.check_time);
+            let qual = apply_igs(UNIT * 3 / 2, *innovation, *great_strides, *inner_quiet);
+            quality_results[18] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 18, &new_state, self.check_time);
         }
-        let ret = *res.iter().max().unwrap();
-        self.insert(ind, ret);
+        let ret = *quality_results.iter().max().unwrap();
+        self.insert(index, ret);
         ret
     }
 
-    pub fn print_backtrace(&self, st: &State) {
-        println!("START {}", State::unpack(st.index(self.check_time)));
-        let mut prev = self.check(st).unwrap_or_else(|| 0);
+    pub fn print_backtrace(&self, state: &State) {
+        println!("START {}", State::unpack(state.index(self.check_time)));
+        let mut prev = self.check(state).unwrap_or_else(|| 0);
         let (mut qual, mut method, mut last) = unpack_method(prev);
         let mut orig = qual;
         println!("TOTAL: {:.4}", qual as f64 / 400.0);
