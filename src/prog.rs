@@ -197,7 +197,7 @@ pub const FINISHERS: [&Finisher; 24] = [
     &Finisher::new(10, 17, 3, 60, true, "fi"),
 ];
 
-pub const OPENERS: [&str; 42] = [ 
+pub const OPENERS: [&str; 46] = [ 
     "Mmv1g",
     "Mmv2g",
     "Mmv1gg",
@@ -239,5 +239,9 @@ pub const OPENERS: [&str; 42] = [
     "Rmvi2gggg",
     "R",
     "M",
-    "Mmvipp"
+    "Mmvipp",
+    "M1g",
+    "M2g",
+    "Mi",
+    "Mg"
 ];
