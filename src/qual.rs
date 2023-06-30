@@ -445,58 +445,58 @@ impl DPCache {
             assert!(method < 19, "invalid method");
             prev = match self.get(last) {None => 0, Some(t) => *t};
             match method {
-                1 => {println!("/ac 'Basic Touch' <wait.3>");},
-                2 => {println!("/ac 'Standard Touch' <wait.3>");},
-                3 => {println!("/ac 'Advanced Touch' <wait.3>");},
+                1 => {println!("/ac \"Basic Touch\" <wait.3>");},
+                2 => {println!("/ac \"Standard Touch\" <wait.3>");},
+                3 => {println!("/ac \"Advanced Touch\" <wait.3>");},
                 4 => {
-                    println!("/ac 'Basic Touch' <wait.3>");
-                    println!("/ac 'Standard Touch' <wait.3>");
+                    println!("/ac \"Basic Touch\" <wait.3>");
+                    println!("/ac \"Standard Touch\" <wait.3>");
                 },
                 5 => {
-                    println!("/ac 'Basic Touch' <wait.3>");
-                    println!("/ac 'Standard Touch' <wait.3>");
-                    println!("/ac 'Advanced Touch' <wait.3>");
+                    println!("/ac \"Basic Touch\" <wait.3>");
+                    println!("/ac \"Standard Touch\" <wait.3>");
+                    println!("/ac \"Advanced Touch\" <wait.3>");
                 },
                 6 => {
                     println!("/ac Observe <wait.3>");
-                    println!("/ac 'Focused Touch' <wait.3>");
+                    println!("/ac \"Focused Touch\" <wait.3>");
                 },
                 7 => {
-                    println!("/ac 'Prudent Touch' <wait.3>");
+                    println!("/ac \"Prudent Touch\" <wait.3>");
                 }
                 8 => {
-                    println!("/ac 'Preparatory Touch' <wait.3>");
+                    println!("/ac \"Preparatory Touch\" <wait.3>");
                 },
                 9 => {
-                    println!("/ac 'Trained Finesse' <wait.3>");
+                    println!("/ac \"Trained Finesse\" <wait.3>");
                 },
                 10 => {
-                    println!("/ac 'Waste Not' <wait.2>");
+                    println!("/ac \"Waste Not\" <wait.2>");
                 },
                 11 => {
-                    println!("/ac 'Waste Not II' <wait.2>");
+                    println!("/ac \"Waste Not II\" <wait.2>");
                 },
                 12 => {
-                    println!("/ac 'Manipulation' <wait.2>");
+                    println!("/ac \"Manipulation\" <wait.2>");
                 },
                 13 => {
-                    println!("/ac 'Master's Mend' <wait.2>");
+                    println!("/ac \"Master's Mend\" <wait.2>");
                 },
                 14 => {
                     println!("/ac Innovation <wait.2>");
                 }
                 15 => {
-                    println!("/ac 'Great Strides' <wait.2>");
+                    println!("/ac \"Great Strides\" <wait.2>");
                 }
                 16 => {
                     println!("/ac Observe <wait.3>");
                 }
                 17 => {
-                    println!("/ac 'Byregot's Blessing' <wait.3>");
+                    println!("/ac \"Byregot's Blessing\" <wait.3>");
                 }
                 18 => {
-                    println!("/ac 'Heart and Soul <wait.3>");
-                    println!("/ac 'Precise Touch' <wait.3>");
+                    println!("/ac \"Heart and Soul\" <wait.3>");
+                    println!("/ac \"Precise Touch\" <wait.3>");
                 }
                 _ => {}
             }

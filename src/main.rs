@@ -211,6 +211,7 @@ fn convert_char(c: char) -> (&'static str, i32) {
         '2' => ("Waste Not II", 2),
         'b' => ("Basic Synthesis", 3),
         'c' => ("Careful Synthesis", 3),
+        'p' => ("Prudent Synthesis", 3),
         'f' => ("Observe", 3),
         'g' => ("Groundwork", 3),
         'i' => ("Heart and Soul", 3),
@@ -220,11 +221,11 @@ fn convert_char(c: char) -> (&'static str, i32) {
 
 fn print_char(c: char) {
     let (name, wait) = convert_char(c);
-    println!("/ac '{}' <wait.{}>", name, wait);
+    println!("/ac \"{}\" <wait.{}>", name, wait);
     if c == 'f' {
-        println!("/ac 'Focused Synthesis' <wait.3>");
+        println!("/ac \"Focused Synthesis\" <wait.3>");
     } else if c == 'i' {
-        println!("/ac 'Intensive Synthesis' <wait.3>");
+        println!("/ac \"Intensive Synthesis\" <wait.3>");
     }
 }
 
