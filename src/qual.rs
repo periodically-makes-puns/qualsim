@@ -42,7 +42,7 @@ impl State {
         + ((self.inner_quiet as u64) << 29) // 4
         + if check_time {(self.time as u64) << 33} else {0}  // 7
         // the overall space requirement is
-        // 90 * 11 * 700 * 17 * 9 * 9 * 5 * 4 * 2 = 38B
+        // 90 * 11 * 1000 * 17 * 9 * 9 * 5 * 4 * 2 = 38B
         // too large for an array so a hashmap is best
     }
     
@@ -61,37 +61,40 @@ pub struct DPCache {
     cache: HashMap<u64, u64>,
     pub hits: u64,
     pub items: u64,
-    check_time: bool
+    check_time: bool,
+    max_dur: i8
 }
 
 
-fn pack_method(quality: u16, method: u8, state: &State, check_time: bool) -> u64 {
+pub fn pack_method(quality: u16, method: u8, state: &State, check_time: bool) -> u64 {
     ((quality as u64) << 48) + ((method as u64) << 40) + state.index(check_time)
 }
 
 pub fn unpack_method(packed_result: u64) -> (u16, u8, u64) {
+    // quality, method, state
     ((packed_result >> 48) as u16, (packed_result >> 40) as u8, packed_result & ((1 << 40) - 1))
 }
 
-fn apply_igs(quality: u16, innovation: i8, great_strides: i8, inner_quiet: u8) -> u16 {
+pub fn apply_igs(quality: u16, innovation: i8, great_strides: i8, inner_quiet: u8) -> u16 {
     quality * (10 + inner_quiet as u16) / 20 * (2 + (if innovation > 0 {1} else {0}) + (if great_strides > 0 {2} else {0}))
 }
 
 pub static UNIT: u16 = 400;
 
-static ACTIONS: [&str; 20] = ["(finished)", "",
+pub static ACTIONS: [&str; 20] = ["(finished)", "",
     "Basic Touch", "Standard Touch", "Advanced Touch", "Basic+Standard", "Advanced Combo", 
     "Focused Touch", "Prudent Touch", "Preparatory Touch", "Trained Finesse", "Waste Not I", 
     "Waste Not II", "Manipulation", "Master's Mend", "Innovation", "Great Strides", 
     "Observe", "Byregot's", "Precise Touch"];
 
 impl DPCache {
-    pub fn new(check_time: bool) -> DPCache {
+    pub fn new(max_dur: i8, check_time: bool) -> DPCache {
         DPCache {
             cache: HashMap::new(),
             hits: 0,
             items: 0,
-            check_time
+            check_time,
+            max_dur
         }
     }
 
@@ -129,7 +132,7 @@ impl DPCache {
             println!("Items: {}", self.items);
         }
         let mut quality_results = [index; 20];
-        // instantiate with current index to preserve information about remaining resources
+        // instantiate with current statenum to preserve information about remaining resources
         // Basic
         if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 18 && *time >= 3 {
             let new_state = State {
@@ -367,7 +370,7 @@ impl DPCache {
             };
             quality_results[15] = pack_method((self.query(&new_state) >> 48) as u16, 15, &new_state, self.check_time);
         }
-        /*
+        /* Observe
         if *cp >= 7 && *time >= 2 {
             let new_state = State {
                 time: time - 2, 

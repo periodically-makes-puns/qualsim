@@ -14,6 +14,8 @@ use std::io::BufReader;
 use std::fs::File;
 use serde_json;
 
+use crate::qual::DPCache;
+
 type Materials = Vec<(u16, u8)>;
 
 #[derive(Serialize, Deserialize)]
@@ -60,12 +62,6 @@ struct Options {
     recipe_file: String,
     check_time: bool,
     bounds: Bounds
-}
-
-fn load_options() -> Options {
-    let f = File::open("options.json").unwrap();
-    let rdr = BufReader::new(f);
-    serde_json::from_reader(rdr).unwrap()
 }
 
 const LV_90_PROG_DIV: f64 = 130.;
@@ -249,25 +245,55 @@ impl fmt::Display for Solution {
     }
 }
 
-fn main() {
-    let mut options = load_options();
-    let mut cache: qual::DPCache;
+fn load_options() -> Result<Options, String> {
+    File::open("options.json")
+        .map_err(|err| err.to_string())
+        .and_then(|f| {
+            serde_json::from_reader(BufReader::new(f))
+            .map_err(|err| err.to_string())
+        })
+}
 
-    let start = Instant::now();
-    if options.incache.len() > 0 {
-        cache = bincode::deserialize(&read(&options.incache).unwrap()).unwrap();
-    } else {
-        cache = qual::DPCache::new(options.check_time);
-    }
-    println!("Cache loaded in +{}ms", start.elapsed().as_millis());
-    let recipe = Statline::load(&options.recipe_file);
-    let mut recipe = match recipe {
-        Ok(res) => {res}
+fn export_cache(outfile: &String, cache: &DPCache) -> Result<(), String> {
+    bincode::serialize(cache).map_err(|err| err.to_string())
+        .and_then(|res| {
+            write(outfile, res).map_err(|err| err.to_string())
+        })
+}
+
+fn main() {
+    let mut options = match load_options() {
+        Ok(res) => res,
         Err(err) => {
-            println!("Error: {}", err);
+            println!("Error loading options file: {}", err);
             return;
         }
     };
+    let mut cache: qual::DPCache;
+
+    let start = Instant::now();
+    println!("Cache loaded in +{}ms", start.elapsed().as_millis());
+    let mut recipe = match Statline::load(&options.recipe_file) {
+        Ok(res) => res,
+        Err(err) => {
+            println!("Error loading options file: {}", err);
+            return;
+        }
+    };
+
+    if options.incache.len() > 0 {
+        cache = match read(&options.incache).map_err(|err| err.to_string())
+            .and_then(|res| bincode::deserialize(&res).map_err(|err| err.to_string())) {
+                Ok(cache) => cache,
+                Err(err) => {
+                    println!("Error loading cache: {}", err);
+                    return;
+                }
+            }
+    } else {
+        cache = DPCache::new(recipe.dur, options.check_time)
+    }
+
     if options.mode == "recipe" {
         let result = check_recipe(&mut cache, &mut recipe, &options);
         let SimResult {best_rot, best_qst, best_qual, best_time} = result;
@@ -383,7 +409,12 @@ fn main() {
     }
     println!("Main operation completed by +{}ms", start.elapsed().as_millis());
     if options.outcache.len() > 0 {
-        write(options.outcache, bincode::serialize(&cache).unwrap()).expect("Failed to export cache");
+        match export_cache(&options.outcache, &cache) {
+            Ok(_) => {},
+            Err(err) => {
+                println!("Error while writing cache: {}", err);
+            }
+        };
     }
     println!("Cache write finished by +{}ms", start.elapsed().as_millis());
 }
