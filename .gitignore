@@ -4,3 +4,4 @@ Cargo.lock
 res.txt
 recipe.json
 /sled_cache
+.vscode

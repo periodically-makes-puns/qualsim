@@ -15,7 +15,7 @@ use std::io::BufReader;
 use std::fs::File;
 use serde_json;
 
-//use crate::qual::DPCache;
+use crate::qual::DPCache;
 use crate::server::AsyncCache;
 
 type Materials = Vec<(u16, u8)>;
@@ -271,7 +271,7 @@ fn main() {
             return;
         }
     };
-    let mut cache: server::AsyncCache;
+    let mut cache: AsyncCache;
 
     let start = Instant::now();
     println!("Cache loaded in +{}ms", start.elapsed().as_millis());

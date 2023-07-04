@@ -1,7 +1,7 @@
-use crate::qual::{DPCache, State, apply_igs, UNIT, pack_method, unpack_method, ACTIONS};
+use crate::qual::{State, apply_igs, UNIT, pack_method, unpack_method, ACTIONS};
 use serde::{Serialize, Deserialize};
-use scc::{TreeIndex, Queue};
-use std::cmp::{min, max};
+use scc::{TreeIndex, Queue, HashMap};
+use std::{cmp::{min, max}, sync::atomic::AtomicU64};
 use rayon::prelude::*;
 use std::collections::{VecDeque, BTreeSet, BTreeMap};
 
@@ -13,23 +13,26 @@ pub struct AsyncCache {
 }
 
 pub struct Query {
-    total_calculations: u64,
+    total_calculations: AtomicU64,
     items: BTreeSet<u64>,
-    dependencies: TreeIndex<u64, Vec<u64>>,
-    unresolved_count: TreeIndex<u64, u8>,
-    resolvable: Queue<u64>
+    dependents: BTreeMap<u64, Vec<u64>>,
+    unresolved_count: HashMap<u64, u8>,
+    resolvable: Queue<u64>,
+    check_time: bool
 }
 
 impl Query {
     pub fn new(cache: &AsyncCache, state: &State) -> Query {
         let mut res = Query {
-            total_calculations: 0,
+            total_calculations: AtomicU64::new(0),
             items: BTreeSet::new(),
-            dependencies: TreeIndex::new(),
-            dependents: TreeIndex::new(),
-            unresolved_count: TreeIndex::new(),
-            resolvable: Queue::default()
+            dependents: BTreeMap::new(),
+            unresolved_count: HashMap::new(),
+            resolvable: Queue::default(),
+            check_time: cache.check_time
         };
+        let mut total: u64 = 0;
+        let mut edges: Vec<(u64, u64)> = Vec::new();
         let mut calculated: BTreeSet<u64> = BTreeSet::new();
         let mut q: VecDeque<u64> = VecDeque::new();
         let top_index = state.index(cache.check_time);
@@ -37,40 +40,69 @@ impl Query {
         res.items.insert(top_index);
         while !q.is_empty() {
             let top = q.pop_front().expect("Queue should be poppable if not empty.");
-            res.total_calculations += 1;
-            let mut dependencies: Vec<u64> = Vec::new();
+            //println!("{}", top);
+            total += 1;
+            if total % 1000000 == 0 {
+                println!("Items: {}", total);
+            }
+            let mut unresolved = 0;
             for item in cache.dependencies(&State::unpack(top)) {
+                //println!("{} {} {}", item.0, item.1, item.2);
                 let index = item.0.index(cache.check_time);
                 if calculated.contains(&index) {continue;}
                 if !res.items.contains(&index) {
                     match cache.prequery(&item.0) {
                         Some(_res) => {calculated.insert(index);}
-                        None => {q.push_back(index); res.items.insert(index); dependencies.push(index);}
+                        None => {q.push_back(index); res.items.insert(index); 
+                            unresolved += 1; edges.push((top, index));}
                     }
+                } else {
+                    unresolved += 1; edges.push((top, index));
                 }
             }
-            let unresolved = dependencies.len() as u8;
             res.unresolved_count.insert(top, unresolved).expect("BFS should only reach each node once.");
-            res.dependencies.insert(top, dependencies).expect("BFS should only reach each node once.");
             if unresolved == 0 {
                 res.resolvable.push(top);
             }
         }
+        res.total_calculations = AtomicU64::new(total);
+        for k in res.items.iter() {
+            res.dependents.insert(*k, Vec::new());
+        }
+        for edge in edges {
+            res.dependents.get_mut(&edge.1).unwrap().push(edge.0);
+        }
         res
     }
 
-    fn resolve(&self, state: &State) {
-        self.items.iter().map(|key| {
-            if 
-        });
+    fn cycle_resolvable(&mut self) -> Vec<u64> {
+        let mut resolved: Vec<u64> = Vec::new();
+        while !self.resolvable.is_empty() {
+            resolved.push(**self.resolvable.pop().expect("Non-empty queue should be poppable."));
+        }
+        for item in resolved.iter() {
+            self.resolve(*item);
+        }
+        resolved
     }
-}
 
-impl Iterator for Query {
-    type Item = u64;
-
-    fn next(&mut self) -> Option<u64> {
-        todo!()
+    fn resolve(&self, index: u64) {
+        match self.dependents.get(&index) {
+            Some(dependents) => {
+                for dep in dependents {
+                    self.unresolved_count.update(dep, |_, v| {
+                        *v -= 1;
+                        if *v == 0 {
+                            self.resolvable.push(*dep);
+                        }
+                    });
+                }
+                self.total_calculations.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+            }
+            None => {
+                println!("Failed to resolve {}", index);
+            }
+        }
     }
 }
 
@@ -102,21 +134,33 @@ impl AsyncCache {
     }
 
     pub fn query(&self, state: &State) -> u64 {
-        self.prequery(state).unwrap_or_else(|| self.compute(state))
+        self.prequery(state).unwrap_or_else(|| {
+            let mut q = Query::new(self, state);
+            let mut res = q.cycle_resolvable();
+            while res.len() > 0 {
+                //println!("LOOP");
+                res.par_iter().for_each(|st| {
+                    //println!("{}", st);
+                    self.compute_nodeps(&State::unpack(*st));
+                });
+                res = q.cycle_resolvable();
+            }
+            self.prequery(state).expect("Value should exist after explicit computation.")
+        })
     }
 
     pub fn dependencies(&self, state: &State) -> Vec<(State, u16, u8)> {
         let State {time, inner_quiet, cp, durability, manipulation, 
             waste_not, innovation, great_strides, heart_and_soul} = state;
-        //println!("EVAL {} {} {} {} {} {} {} {} {}", time, inner_quiet, cp, durability, manipulation, waste_not, innovation, great_strides, heart_and_soul);
+        //println!("DEP {} {} {} {} {} {} {} {} {}", time, inner_quiet, cp, durability, manipulation, waste_not, innovation, great_strides, heart_and_soul);
         //let mut states: [State; 20] = [State::unpack(0); 20]; // used to bring the states into this scope
         let mut jobs: Vec<(State, u16, u8)> = Vec::new();
         // instantiate with current statenum to preserve information about remaining resources
         // Basic
-        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 18 && *time >= 3 {
+        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 18 && (*time >= 3 || !self.check_time) {
             let qual = apply_igs(UNIT, *innovation, *great_strides, *inner_quiet);
             jobs.push((State {
-                time: time - 3, 
+                time: if !self.check_time {0} else {time - 3}, 
                 inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 18,
                 durability: durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
@@ -128,10 +172,10 @@ impl AsyncCache {
             }, qual, 1));
         }
         // Standard
-        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 32 && *time >= 3 {
+        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 32 && (*time >= 3 || !self.check_time) {
             let qual = apply_igs(UNIT * 5 / 4, *innovation, *great_strides, *inner_quiet);
             jobs.push((State {
-                time: time - 3, 
+                time: if !self.check_time {0} else {time - 3}, 
                 inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 32,
                 durability: durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
@@ -143,10 +187,10 @@ impl AsyncCache {
             }, qual, 2));
         }
         // Advanced
-        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 46 && *time >= 3 {
+        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 46 && (*time >= 3 || !self.check_time) {
             let qual = apply_igs(UNIT * 3 / 2, *innovation, *great_strides, *inner_quiet);
             jobs.push((State {
-                time: time - 3, 
+                time: if !self.check_time {0} else {time - 3}, 
                 inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 46,
                 durability: durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
@@ -158,11 +202,11 @@ impl AsyncCache {
             }, qual, 3));
         }
         // Standard Combo
-        if (*durability >= 4 - min(*waste_not, 2) - min(*manipulation, 1)) && *cp >= 36 && *time >= 6 {
+        if (*durability >= 4 - min(*waste_not, 2) - min(*manipulation, 1)) && *cp >= 36 && (*time >= 6 || !self.check_time) {
             let qual = apply_igs(UNIT, *innovation, *great_strides, *inner_quiet)
                 + apply_igs(UNIT * 5 / 4, *innovation - 1, 0, min(*inner_quiet + 1, 10));
             jobs.push((State {
-                time: time - 6, 
+                time: if !self.check_time {0} else {time - 6}, 
                 inner_quiet: min(inner_quiet + 2, 10), 
                 cp: cp - 36,
                 durability: durability - 4 + min(*waste_not, 2) + min(*manipulation, 2),
@@ -174,12 +218,12 @@ impl AsyncCache {
             }, qual, 4));
         }
         // Advanced Combo
-        if (*durability >= 6 - min(*waste_not, 3) - min(*manipulation, 2)) && *cp >= 54 && *time >= 9 {
+        if (*durability >= 6 - min(*waste_not, 3) - min(*manipulation, 2)) && *cp >= 54 && (*time >= 9 || !self.check_time) {
             let qual = apply_igs(UNIT, *innovation, *great_strides, *inner_quiet)
                 + apply_igs(UNIT * 5 / 4, innovation - 1, 0, min(inner_quiet + 1, 10))
                 + apply_igs(UNIT * 3 / 2, innovation - 2, 0, min(inner_quiet + 2, 10));
                 jobs.push((State {
-                    time: time - 9, 
+                    time: if !self.check_time {0} else {time - 9}, 
                     inner_quiet: min(inner_quiet + 3, 10), 
                     cp: cp - 54,
                     durability: durability - 6 + min(*waste_not, 3) + min(*manipulation, 3),
@@ -191,10 +235,10 @@ impl AsyncCache {
                 }, qual, 5));
         }
         // Focused Touch
-        if (durability + min(*manipulation, 1) >= if *waste_not > 1 {1} else {2}) && *cp >= 25 && *time >= 5 {
+        if (durability + min(*manipulation, 1) >= if *waste_not > 1 {1} else {2}) && *cp >= 25 && (*time >= 5 || !self.check_time) {
             let qual = apply_igs(UNIT * 3 / 2, innovation - 1, great_strides - 1, *inner_quiet);
             jobs.push((State {
-                time: time - 5, 
+                time: if !self.check_time {0} else {time - 5}, 
                 inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 25,
                 durability: durability - (if *waste_not > 1 {1} else {2}) + min(*manipulation, 2),
@@ -206,10 +250,10 @@ impl AsyncCache {
             }, qual, 6));
         }
         // Prudent Touch
-        if *durability >= 1 && *cp >= 25 && *waste_not == 0 && *time >= 3 {
+        if *durability >= 1 && *cp >= 25 && *waste_not == 0 && (*time >= 3 || !self.check_time) {
             let qual = apply_igs(UNIT, *innovation, *great_strides, *inner_quiet);
             jobs.push((State {
-                time: time - 3, 
+                time: if !self.check_time {0} else {time - 3}, 
                 inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 25,
                 durability: durability - 1 + min(*manipulation, 1),
@@ -221,10 +265,10 @@ impl AsyncCache {
             }, qual, 7));
         }
         // Prepratory Touch
-        if (*durability >= 4 - (if *waste_not > 0 {2} else {0})) && *cp >= 40 && *time >= 3 {
+        if (*durability >= 4 - (if *waste_not > 0 {2} else {0})) && *cp >= 40 && (*time >= 3 || !self.check_time) {
             let qual = apply_igs(UNIT * 2, *innovation, *great_strides, *inner_quiet);
             jobs.push((State {
-                time: time - 3, 
+                time: if !self.check_time {0} else {time - 3}, 
                 inner_quiet: min(*inner_quiet + 2, 10), 
                 cp: cp - 40,
                 durability: durability - 4 + (if *waste_not > 0 {2} else {0}) + min(*manipulation, 1),
@@ -236,10 +280,10 @@ impl AsyncCache {
             }, qual, 8));
         }
         // Trained Finesse
-        if *inner_quiet == 10 && *cp >= 32 && *time >= 3 {
+        if *inner_quiet == 10 && *cp >= 32 && (*time >= 3 || !self.check_time) {
             let qual = apply_igs(UNIT, *innovation, *great_strides, *inner_quiet);
             jobs.push((State {
-                time: time - 3, 
+                time: if !self.check_time {0} else {time - 3}, 
                 inner_quiet: 10, 
                 cp: cp - 32,
                 durability: durability + min(*manipulation, 1),
@@ -251,9 +295,9 @@ impl AsyncCache {
             }, qual, 9));
         }
         // Waste Not 1
-        if *cp >= 56 && *time >= 2 {
+        if *cp >= 56 && (*time >= 2 || !self.check_time) {
             jobs.push((State {
-                time: time - 2, 
+                time: if !self.check_time {0} else {time - 2}, 
                 inner_quiet: *inner_quiet, 
                 cp: cp - 56,
                 durability: durability + min(*manipulation, 1),
@@ -265,9 +309,9 @@ impl AsyncCache {
             }, 0, 10));
         }
         // Waste Not 2
-        if *cp >= 98 && *time >= 2 {
+        if *cp >= 98 && (*time >= 2 || !self.check_time) {
             jobs.push((State {
-                time: time - 2, 
+                time: if !self.check_time {0} else {time - 2}, 
                 inner_quiet: *inner_quiet, 
                 cp: cp - 98,
                 durability: durability + min(*manipulation, 1),
@@ -279,9 +323,9 @@ impl AsyncCache {
             }, 0, 11));
         }
         // Manipulation
-        if *cp >= 96 && *time >= 2 {
+        if *cp >= 96 && (*time >= 2 || !self.check_time) {
             jobs.push((State {
-                time: time - 2, 
+                time: if !self.check_time {0} else {time - 2}, 
                 inner_quiet: *inner_quiet, 
                 cp: cp - 96,
                 durability: *durability,
@@ -293,9 +337,9 @@ impl AsyncCache {
             }, 0, 12));
         }
         // Master's Mend
-        if *cp >= 88 && *time >= 2 {
+        if *cp >= 88 && (*time >= 2 || !self.check_time) {
             jobs.push((State {
-                time: time - 2, 
+                time: if !self.check_time {0} else {time - 2}, 
                 inner_quiet: *inner_quiet, 
                 cp: cp - 88,
                 durability: *durability + 3 + min(*manipulation, 1),
@@ -307,9 +351,9 @@ impl AsyncCache {
             }, 0, 13));
         }
         // Innovation
-        if *cp >= 18 && *time >= 2 {
+        if *cp >= 18 && (*time >= 2 || !self.check_time) {
             jobs.push((State {
-                time: time - 2, 
+                time: if !self.check_time {0} else {time - 2}, 
                 inner_quiet: *inner_quiet, 
                 cp: cp - 18,
                 durability: *durability + min(*manipulation, 1),
@@ -321,9 +365,9 @@ impl AsyncCache {
             }, 0, 14));
         }
         // Great Strides
-        if *cp >= 32 && *time >= 2 {
+        if *cp >= 32 && (*time >= 2 || !self.check_time) {
             jobs.push((State {
-                time: time - 2, 
+                time: if !self.check_time {0} else {time - 2}, 
                 inner_quiet: *inner_quiet, 
                 cp: cp - 32,
                 durability: *durability + min(*manipulation, 1),
@@ -335,9 +379,9 @@ impl AsyncCache {
             }, 0, 15));
         }
         /* Observe
-        if *cp >= 7 && *time >= 2 {
+        if *cp >= 7 && (*time >= 2 || !self.check_time) {
             jobs.push((State {
-                time: time - 2, 
+                time: if !self.check_time {0} else {time - 2}, 
                 iq: *iq, 
                 cp: cp - 7,
                 dur: *dur + min(*manip, 1),
@@ -349,10 +393,10 @@ impl AsyncCache {
             }, 0, 16));
         }*/
         // Byregot's Blessing
-        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 24 && *inner_quiet > 0 && *time >= 3 {
+        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 24 && *inner_quiet > 0 && (*time >= 3 || !self.check_time) {
             let qual = apply_igs(UNIT * (10 + 2 * *inner_quiet as u16) / 10, *innovation, *great_strides, *inner_quiet);
             jobs.push((State {
-                time: time - 3, 
+                time: if !self.check_time {0} else {time - 3}, 
                 inner_quiet: 0, 
                 cp: cp - 24,
                 durability: *durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
@@ -364,10 +408,10 @@ impl AsyncCache {
             }, qual, 17));
         }
         // Precise Touch
-        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 18 && *heart_and_soul && *time >= 3 {
+        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 18 && *heart_and_soul && (*time >= 3 || !self.check_time) {
             let qual = apply_igs(UNIT * 3 / 2, *innovation, *great_strides, *inner_quiet);
             jobs.push((State {
-                time: time - 3, 
+                time: if !self.check_time {0} else {time - 3}, 
                 inner_quiet: min(inner_quiet + 2, 10), 
                 cp: cp - 18,
                 durability: *durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
@@ -378,7 +422,33 @@ impl AsyncCache {
                 heart_and_soul: false
             }, qual, 18));
         }
+        //dbg!(jobs.len());
         jobs
+    }
+
+    pub fn compute_nodeps(&self, state: &State) -> u64 {
+        let index = state.index(self.check_time);
+        //println!("EVAL {}", *state);
+        //let mut states: [State; 20] = [State::unpack(0); 20]; // used to bring the states into this scope
+        let mut results: Vec<u64> = Vec::new();
+        for job in self.dependencies(state) {
+            match self.prequery(&job.0) {
+                Some(res) => results.push(pack_method((res >> 48) as u16 + job.1, job.2, &job.0, self.check_time)),
+                None => {
+                    panic!("{} requires calculation!", job.0);
+                }
+            }
+        }
+        let res = results.iter().map(|x| *x).max().unwrap_or(0);
+        
+        match self.cache.insert(index, res) {
+            Ok(_) => {},
+            Err(err) => {
+                println!("Failed to insert {} {} {}", err.0, err.1, 
+                    self.cache.read(&err.0, |_k, v| *v).unwrap());
+            }
+        }
+        res
     }
 
     pub fn compute(&self, state: &State) -> u64 {
