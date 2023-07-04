@@ -1,5 +1,6 @@
 pub mod qual;
 pub mod prog;
+pub mod server;
 use std::collections::HashSet;
 use std::error;
 use std::time::Instant;
@@ -14,7 +15,8 @@ use std::io::BufReader;
 use std::fs::File;
 use serde_json;
 
-use crate::qual::DPCache;
+//use crate::qual::DPCache;
+use crate::server::AsyncCache;
 
 type Materials = Vec<(u16, u8)>;
 
@@ -111,7 +113,7 @@ struct SimResult<'a> {
     best_qst: qual::State
 }
 
-fn check_recipe<'a>(cache: &mut qual::DPCache, recipe: &mut Statline, options: &Options) -> SimResult<'a> {
+fn check_recipe<'a>(cache: &mut AsyncCache, recipe: &mut Statline, options: &Options) -> SimResult<'a> {
     let prog_unit: u16 = ((recipe.cms as f64 * 10. / LV_90_PROG_DIV + 2.) * if recipe.rlvl >= 580 {LV_90_PROG_MUL} else {100.} / 100.).floor() as u16;
     let qual_unit: u16 = ((recipe.ctrl as f64 * 10. / LV_90_QUAL_DIV + 35.) * if recipe.rlvl >= 580 {LV_90_QUAL_MUL} else {100.} / 100.).floor() as u16;
     println!("Prog/100: {}", prog_unit);
@@ -254,7 +256,7 @@ fn load_options() -> Result<Options, String> {
         })
 }
 
-fn export_cache(outfile: &String, cache: &DPCache) -> Result<(), String> {
+fn export_cache(outfile: &String, cache: &AsyncCache) -> Result<(), String> {
     bincode::serialize(cache).map_err(|err| err.to_string())
         .and_then(|res| {
             write(outfile, res).map_err(|err| err.to_string())
@@ -269,7 +271,7 @@ fn main() {
             return;
         }
     };
-    let mut cache: qual::DPCache;
+    let mut cache: server::AsyncCache;
 
     let start = Instant::now();
     println!("Cache loaded in +{}ms", start.elapsed().as_millis());
@@ -291,7 +293,7 @@ fn main() {
                 }
             }
     } else {
-        cache = DPCache::new(recipe.dur, options.check_time)
+        cache = AsyncCache::new(recipe.dur, options.check_time)
     }
 
     if options.mode == "recipe" {
@@ -311,8 +313,8 @@ fn main() {
         println!("Best time: {}", best_time);
         println!("Quality: {}", best_qual);
         cache.print_backtrace(&best_qst);
-        println!("hits: {}", cache.hits);
-        println!("items: {}", cache.items);
+        //println!("hits: {}", cache.hits);
+        //println!("items: {}", cache.items);
     } else if options.mode == "gearset" {
         if recipe.has { // Raise upper bound to allow specialist
             options.bounds.cms.1 += 20;

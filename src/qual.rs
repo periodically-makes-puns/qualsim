@@ -3,7 +3,7 @@ use std::cmp::{max, min};
 use std::fmt;
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct State {
     pub time: u8, // 0-89, 7 bits, REMOVE
     pub inner_quiet: u8, // 0-10, 4 bits
@@ -107,11 +107,7 @@ impl DPCache {
     }
 
     pub fn check(&self, state: &State) -> Option<u64> {
-        let index = state.index(self.check_time);
-        match self.get(index) {
-            Some(ret) => Some(*ret),
-            None => None
-        }
+        self.get(state.index(self.check_time)).and_then(|x| Some(*x))
     }
 
     pub fn query(&mut self, state: &State) -> u64 {
