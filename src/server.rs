@@ -18,7 +18,6 @@ pub struct Query {
     dependents: BTreeMap<u64, Vec<u64>>,
     unresolved_count: HashMap<u64, u8>,
     resolvable: Queue<u64>,
-    check_time: bool
 }
 
 impl Query {
@@ -29,7 +28,6 @@ impl Query {
             dependents: BTreeMap::new(),
             unresolved_count: HashMap::new(),
             resolvable: Queue::default(),
-            check_time: cache.check_time
         };
         let mut total: u64 = 0;
         let mut edges: Vec<(u64, u64)> = Vec::new();
