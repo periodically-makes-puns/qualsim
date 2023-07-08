@@ -3,7 +3,7 @@ use std::cmp::{max, min};
 use std::fmt;
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct State {
     pub time: u8, // 0-89, 7 bits, REMOVE
     pub inner_quiet: u8, // 0-10, 4 bits
@@ -42,7 +42,7 @@ impl State {
         + ((self.inner_quiet as u64) << 29) // 4
         + if check_time {(self.time as u64) << 33} else {0}  // 7
         // the overall space requirement is
-        // 90 * 11 * 700 * 17 * 9 * 9 * 5 * 4 * 2 = 38B
+        // 90 * 11 * 1000 * 17 * 9 * 9 * 5 * 4 * 2 = 38B
         // too large for an array so a hashmap is best
     }
     
@@ -61,37 +61,40 @@ pub struct DPCache {
     cache: HashMap<u64, u64>,
     pub hits: u64,
     pub items: u64,
-    check_time: bool
+    check_time: bool,
+    max_dur: i8
 }
 
 
-fn pack_method(quality: u16, method: u8, state: &State, check_time: bool) -> u64 {
+pub fn pack_method(quality: u16, method: u8, state: &State, check_time: bool) -> u64 {
     ((quality as u64) << 48) + ((method as u64) << 40) + state.index(check_time)
 }
 
 pub fn unpack_method(packed_result: u64) -> (u16, u8, u64) {
+    // quality, method, state
     ((packed_result >> 48) as u16, (packed_result >> 40) as u8, packed_result & ((1 << 40) - 1))
 }
 
-fn apply_igs(quality: u16, innovation: i8, great_strides: i8, inner_quiet: u8) -> u16 {
+pub fn apply_igs(quality: u16, innovation: i8, great_strides: i8, inner_quiet: u8) -> u16 {
     quality * (10 + inner_quiet as u16) / 20 * (2 + (if innovation > 0 {1} else {0}) + (if great_strides > 0 {2} else {0}))
 }
 
 pub static UNIT: u16 = 400;
 
-static ACTIONS: [&str; 20] = ["(finished)", "",
+pub static ACTIONS: [&str; 20] = ["(finished)", "",
     "Basic Touch", "Standard Touch", "Advanced Touch", "Basic+Standard", "Advanced Combo", 
     "Focused Touch", "Prudent Touch", "Preparatory Touch", "Trained Finesse", "Waste Not I", 
     "Waste Not II", "Manipulation", "Master's Mend", "Innovation", "Great Strides", 
     "Observe", "Byregot's", "Precise Touch"];
 
 impl DPCache {
-    pub fn new(check_time: bool) -> DPCache {
+    pub fn new(max_dur: i8, check_time: bool) -> DPCache {
         DPCache {
             cache: HashMap::new(),
             hits: 0,
             items: 0,
-            check_time
+            check_time,
+            max_dur
         }
     }
 
@@ -104,11 +107,7 @@ impl DPCache {
     }
 
     pub fn check(&self, state: &State) -> Option<u64> {
-        let index = state.index(self.check_time);
-        match self.get(index) {
-            Some(ret) => Some(*ret),
-            None => None
-        }
+        self.get(state.index(self.check_time)).and_then(|x| Some(*x))
     }
 
     pub fn query(&mut self, state: &State) -> u64 {
@@ -129,11 +128,11 @@ impl DPCache {
             println!("Items: {}", self.items);
         }
         let mut quality_results = [index; 20];
-        // instantiate with current index to preserve information about remaining resources
+        // instantiate with current statenum to preserve information about remaining resources
         // Basic
-        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 18 && *time >= 3 {
+        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 18 && (!self.check_time || *time >= 3) {
             let new_state = State {
-                time: time - 3, 
+                time: if self.check_time {time - 3} else {0}, 
                 inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 18,
                 durability: durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
@@ -147,9 +146,9 @@ impl DPCache {
             quality_results[1] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 1, &new_state, self.check_time);
         }
         // Standard
-        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 32 && *time >= 3 {
+        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 32 && (!self.check_time || *time >= 3) {
             let new_state = State {
-                time: time - 3, 
+                time: if self.check_time {time - 3} else {0}, 
                 inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 32,
                 durability: durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
@@ -163,9 +162,9 @@ impl DPCache {
             quality_results[2] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 2, &new_state, self.check_time);
         }
         // Advanced
-        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 46 && *time >= 3 {
+        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 46 && (!self.check_time || *time >= 3) {
             let new_state = State {
-                time: time - 3, 
+                time: if self.check_time {time - 3} else {0}, 
                 inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 46,
                 durability: durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
@@ -179,9 +178,9 @@ impl DPCache {
             quality_results[3] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 3, &new_state, self.check_time);
         }
         // Standard Combo
-        if (*durability >= 4 - min(*waste_not, 2) - min(*manipulation, 1)) && *cp >= 36 && *time >= 6 {
+        if (*durability >= 4 - min(*waste_not, 2) - min(*manipulation, 1)) && *cp >= 36 && (!self.check_time || *time >= 6) {
             let new_state = State {
-                time: time - 6, 
+                time: if self.check_time {time - 6} else {0}, 
                 inner_quiet: min(inner_quiet + 2, 10), 
                 cp: cp - 36,
                 durability: durability - 4 + min(*waste_not, 2) + min(*manipulation, 2),
@@ -196,9 +195,9 @@ impl DPCache {
             quality_results[4] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 4, &new_state, self.check_time);
         }
         // Advanced Combo
-        if (*durability >= 6 - min(*waste_not, 3) - min(*manipulation, 2)) && *cp >= 54 && *time >= 9 {
+        if (*durability >= 6 - min(*waste_not, 3) - min(*manipulation, 2)) && *cp >= 54 && (!self.check_time || *time >= 9) {
             let new_state = State {
-                time: time - 9, 
+                time: if self.check_time {time - 9} else {0}, 
                 inner_quiet: min(inner_quiet + 3, 10), 
                 cp: cp - 54,
                 durability: durability - 6 + min(*waste_not, 3) + min(*manipulation, 3),
@@ -214,9 +213,9 @@ impl DPCache {
             quality_results[5] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 5, &new_state, self.check_time);
         }
         // Focused Touch
-        if (durability + min(*manipulation, 1) >= if *waste_not > 1 {1} else {2}) && *cp >= 25 && *time >= 5 {
+        if (durability + min(*manipulation, 1) >= if *waste_not > 1 {1} else {2}) && *cp >= 25 && (!self.check_time || *time >= 5) {
             let new_state = State {
-                time: time - 5, 
+                time: if self.check_time {time - 5} else {0}, 
                 inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 25,
                 durability: durability - (if *waste_not > 1 {1} else {2}) + min(*manipulation, 2),
@@ -230,9 +229,9 @@ impl DPCache {
             quality_results[6] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 6, &new_state, self.check_time);
         }
         // Prudent Touch
-        if *durability >= 1 && *cp >= 25 && *waste_not == 0 && *time >= 3 {
+        if *durability >= 1 && *cp >= 25 && *waste_not == 0 && (!self.check_time || *time >= 3) {
             let new_state = State {
-                time: time - 3, 
+                time: if self.check_time {time - 3} else {0}, 
                 inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 25,
                 durability: durability - 1 + min(*manipulation, 1),
@@ -246,9 +245,9 @@ impl DPCache {
             quality_results[7] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 7, &new_state, self.check_time);
         }
         // Prepratory Touch
-        if (*durability >= 4 - (if *waste_not > 0 {2} else {0})) && *cp >= 40 && *time >= 3 {
+        if (*durability >= 4 - (if *waste_not > 0 {2} else {0})) && *cp >= 40 && (!self.check_time || *time >= 3) {
             let new_state = State {
-                time: time - 3, 
+                time: if self.check_time {time - 3} else {0}, 
                 inner_quiet: min(*inner_quiet + 2, 10), 
                 cp: cp - 40,
                 durability: durability - 4 + (if *waste_not > 0 {2} else {0}) + min(*manipulation, 1),
@@ -262,9 +261,9 @@ impl DPCache {
             quality_results[8] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 8, &new_state, self.check_time);
         }
         // Trained Finesse
-        if *inner_quiet == 10 && *cp >= 32 && *time >= 3 {
+        if *inner_quiet == 10 && *cp >= 32 && (!self.check_time || *time >= 3) {
             let new_state = State {
-                time: time - 3, 
+                time: if self.check_time {time - 3} else {0}, 
                 inner_quiet: 10, 
                 cp: cp - 32,
                 durability: durability + min(*manipulation, 1),
@@ -278,9 +277,9 @@ impl DPCache {
             quality_results[9] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 9, &new_state, self.check_time);
         }
         // Waste Not 1
-        if *cp >= 56 && *time >= 2 {
+        if *cp >= 56 && (!self.check_time || *time >= 2) {
             let new_state = State {
-                time: time - 2, 
+                time: if self.check_time {time - 2} else {0}, 
                 inner_quiet: *inner_quiet, 
                 cp: cp - 56,
                 durability: durability + min(*manipulation, 1),
@@ -293,9 +292,9 @@ impl DPCache {
             quality_results[10] = pack_method((self.query(&new_state) >> 48) as u16, 10, &new_state, self.check_time);
         }
         // Waste Not 2
-        if *cp >= 98 && *time >= 2 {
+        if *cp >= 98 && (!self.check_time || *time >= 2) {
             let new_state = State {
-                time: time - 2, 
+                time: if self.check_time {time - 2} else {0}, 
                 inner_quiet: *inner_quiet, 
                 cp: cp - 98,
                 durability: durability + min(*manipulation, 1),
@@ -308,9 +307,9 @@ impl DPCache {
             quality_results[11] = pack_method((self.query(&new_state) >> 48) as u16, 11, &new_state, self.check_time);
         }
         // Manipulation
-        if *cp >= 96 && *time >= 2 {
+        if *cp >= 96 && (!self.check_time || *time >= 2) {
             let new_state = State {
-                time: time - 2, 
+                time: if self.check_time {time - 2} else {0}, 
                 inner_quiet: *inner_quiet, 
                 cp: cp - 96,
                 durability: *durability,
@@ -323,9 +322,9 @@ impl DPCache {
             quality_results[12] = pack_method((self.query(&new_state) >> 48) as u16, 12, &new_state, self.check_time);
         }
         // Master's Mend
-        if *cp >= 88 && *time >= 2 {
+        if *cp >= 88 && (!self.check_time || *time >= 2) {
             let new_state = State {
-                time: time - 2, 
+                time: if self.check_time {time - 2} else {0}, 
                 inner_quiet: *inner_quiet, 
                 cp: cp - 88,
                 durability: *durability + 3 + min(*manipulation, 1),
@@ -338,9 +337,9 @@ impl DPCache {
             quality_results[13] = pack_method((self.query(&new_state) >> 48) as u16, 13, &new_state, self.check_time);
         }
         // Innovation
-        if *cp >= 18 && *time >= 2 {
+        if *cp >= 18 && (!self.check_time || *time >= 2) {
             let new_state = State {
-                time: time - 2, 
+                time: if self.check_time {time - 2} else {0}, 
                 inner_quiet: *inner_quiet, 
                 cp: cp - 18,
                 durability: *durability + min(*manipulation, 1),
@@ -353,9 +352,9 @@ impl DPCache {
             quality_results[14] = pack_method((self.query(&new_state) >> 48) as u16, 14, &new_state, self.check_time);
         }
         // Great Strides
-        if *cp >= 32 && *time >= 2 {
+        if *cp >= 32 && (!self.check_time || *time >= 2) {
             let new_state = State {
-                time: time - 2, 
+                time: if self.check_time {time - 2} else {0}, 
                 inner_quiet: *inner_quiet, 
                 cp: cp - 32,
                 durability: *durability + min(*manipulation, 1),
@@ -367,10 +366,10 @@ impl DPCache {
             };
             quality_results[15] = pack_method((self.query(&new_state) >> 48) as u16, 15, &new_state, self.check_time);
         }
-        /*
-        if *cp >= 7 && *time >= 2 {
+        /* Observe
+        if *cp >= 7 && (!self.check_time || *time >= 2) {
             let new_state = State {
-                time: time - 2, 
+                time: if self.check_time {time - 2} else {0}, 
                 iq: *iq, 
                 cp: cp - 7,
                 dur: *dur + min(*manip, 1),
@@ -383,9 +382,9 @@ impl DPCache {
             res[16] = combine_method((self.query(&new_state) >> 48) as u16, 16, &new_state, self.check_time);
         }*/
         // Byregot's Blessing
-        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 24 && *inner_quiet > 0 && *time >= 3 {
+        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 24 && *inner_quiet > 0 && (!self.check_time || *time >= 3) {
             let new_state = State {
-                time: time - 3, 
+                time: if self.check_time {time - 3} else {0}, 
                 inner_quiet: 0, 
                 cp: cp - 24,
                 durability: *durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
@@ -399,9 +398,9 @@ impl DPCache {
             quality_results[17] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 17, &new_state, self.check_time);
         }
         // Precise Touch
-        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 18 && *heart_and_soul && *time >= 3 {
+        if (*durability >= 2 - min(*waste_not, 1)) && *cp >= 18 && *heart_and_soul && (!self.check_time || *time >= 3) {
             let new_state = State {
-                time: time - 3, 
+                time: if self.check_time {time - 3} else {0}, 
                 inner_quiet: min(inner_quiet + 2, 10), 
                 cp: cp - 18,
                 durability: *durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),

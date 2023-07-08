@@ -1,5 +1,6 @@
 pub mod qual;
 pub mod prog;
+pub mod server;
 use std::collections::HashSet;
 use std::error;
 use std::time::Instant;
@@ -13,6 +14,9 @@ use serde::{Serialize, Deserialize};
 use std::io::BufReader;
 use std::fs::File;
 use serde_json;
+
+use crate::qual::DPCache;
+use crate::server::AsyncCache;
 
 type Materials = Vec<(u16, u8)>;
 
@@ -62,12 +66,6 @@ struct Options {
     bounds: Bounds
 }
 
-fn load_options() -> Options {
-    let f = File::open("options.json").unwrap();
-    let rdr = BufReader::new(f);
-    serde_json::from_reader(rdr).unwrap()
-}
-
 const LV_90_PROG_DIV: f64 = 130.;
 const LV_90_QUAL_DIV: f64 = 115.;
 const LV_90_PROG_MUL: f64 = 80.;
@@ -115,7 +113,7 @@ struct SimResult<'a> {
     best_qst: qual::State
 }
 
-fn check_recipe<'a>(cache: &mut qual::DPCache, recipe: &mut Statline, options: &Options) -> SimResult<'a> {
+fn check_recipe<'a>(cache: &mut DPCache, recipe: &mut Statline, options: &Options) -> SimResult<'a> {
     let prog_unit: u16 = ((recipe.cms as f64 * 10. / LV_90_PROG_DIV + 2.) * if recipe.rlvl >= 580 {LV_90_PROG_MUL} else {100.} / 100.).floor() as u16;
     let qual_unit: u16 = ((recipe.ctrl as f64 * 10. / LV_90_QUAL_DIV + 35.) * if recipe.rlvl >= 580 {LV_90_QUAL_MUL} else {100.} / 100.).floor() as u16;
     println!("Prog/100: {}", prog_unit);
@@ -249,25 +247,55 @@ impl fmt::Display for Solution {
     }
 }
 
-fn main() {
-    let mut options = load_options();
-    let mut cache: qual::DPCache;
+fn load_options() -> Result<Options, String> {
+    File::open("options.json")
+        .map_err(|err| err.to_string())
+        .and_then(|f| {
+            serde_json::from_reader(BufReader::new(f))
+            .map_err(|err| err.to_string())
+        })
+}
 
-    let start = Instant::now();
-    if options.incache.len() > 0 {
-        cache = bincode::deserialize(&read(&options.incache).unwrap()).unwrap();
-    } else {
-        cache = qual::DPCache::new(options.check_time);
-    }
-    println!("Cache loaded in +{}ms", start.elapsed().as_millis());
-    let recipe = Statline::load(&options.recipe_file);
-    let mut recipe = match recipe {
-        Ok(res) => {res}
+fn export_cache(outfile: &String, cache: &DPCache) -> Result<(), String> {
+    bincode::serialize(cache).map_err(|err| err.to_string())
+        .and_then(|res| {
+            write(outfile, res).map_err(|err| err.to_string())
+        })
+}
+
+fn main() {
+    let mut options = match load_options() {
+        Ok(res) => res,
         Err(err) => {
-            println!("Error: {}", err);
+            println!("Error loading options file: {}", err);
             return;
         }
     };
+    let mut cache: DPCache;
+
+    let start = Instant::now();
+    println!("Cache loaded in +{}ms", start.elapsed().as_millis());
+    let mut recipe = match Statline::load(&options.recipe_file) {
+        Ok(res) => res,
+        Err(err) => {
+            println!("Error loading options file: {}", err);
+            return;
+        }
+    };
+
+    if options.incache.len() > 0 {
+        cache = match read(&options.incache).map_err(|err| err.to_string())
+            .and_then(|res| bincode::deserialize(&res).map_err(|err| err.to_string())) {
+                Ok(cache) => cache,
+                Err(err) => {
+                    println!("Error loading cache: {}", err);
+                    return;
+                }
+            }
+    } else {
+        cache = DPCache::new(recipe.dur, options.check_time)
+    }
+
     if options.mode == "recipe" {
         let result = check_recipe(&mut cache, &mut recipe, &options);
         let SimResult {best_rot, best_qst, best_qual, best_time} = result;
@@ -285,8 +313,8 @@ fn main() {
         println!("Best time: {}", best_time);
         println!("Quality: {}", best_qual);
         cache.print_backtrace(&best_qst);
-        println!("hits: {}", cache.hits);
-        println!("items: {}", cache.items);
+        //println!("hits: {}", cache.hits);
+        //println!("items: {}", cache.items);
     } else if options.mode == "gearset" {
         if recipe.has { // Raise upper bound to allow specialist
             options.bounds.cms.1 += 20;
@@ -383,7 +411,12 @@ fn main() {
     }
     println!("Main operation completed by +{}ms", start.elapsed().as_millis());
     if options.outcache.len() > 0 {
-        write(options.outcache, bincode::serialize(&cache).unwrap()).expect("Failed to export cache");
+        match export_cache(&options.outcache, &cache) {
+            Ok(_) => {},
+            Err(err) => {
+                println!("Error while writing cache: {}", err);
+            }
+        };
     }
     println!("Cache write finished by +{}ms", start.elapsed().as_millis());
 }
