@@ -8,11 +8,11 @@ pub struct State {
     pub time: u8, // 0-89, 7 bits, REMOVE
     pub inner_quiet: u8, // 0-10, 4 bits
     pub cp: u16, // 0-1023, 10 bits
-    pub durability: i8, // 0-16, 5 bits
-    pub manipulation: i8, // 0-8, 4 bits
-    pub waste_not: i8, // 0-8, 4 bits
-    pub innovation: i8, // 0-4, 3 bits
-    pub great_strides: i8, // 0-3, 2 bits
+    pub durability: u8, // 0-16, 5 bits
+    pub manipulation: u8, // 0-8, 4 bits
+    pub waste_not: u8, // 0-8, 4 bits
+    pub innovation: u8, // 0-4, 3 bits
+    pub great_strides: u8, // 0-3, 2 bits
     pub heart_and_soul: bool, // 1 bit
 }
 
@@ -22,11 +22,11 @@ impl State {
             time:           ((st & 0x000001FE00000000) >> 33) as u8, // yes
             inner_quiet:    ((st & 0x00000001E0000000) >> 29) as u8, // 4
             cp:             ((st & 0x000000001FF80000) >> 19) as u16, // 10
-            durability:     ((st & 0x000000000007C000) >> 14) as i8, // 5
-            manipulation:   ((st & 0x0000000000003C00) >> 10) as i8, // 4
-            waste_not:      ((st & 0x00000000000003C0) >> 06) as i8, // 4
-            innovation:     ((st & 0x0000000000000038) >> 03) as i8, // 3
-            great_strides:  ((st & 0x0000000000000006) >> 01) as i8, // 2
+            durability:     ((st & 0x000000000007C000) >> 14) as u8, // 5
+            manipulation:   ((st & 0x0000000000003C00) >> 10) as u8, // 4
+            waste_not:      ((st & 0x00000000000003C0) >> 06) as u8, // 4
+            innovation:     ((st & 0x0000000000000038) >> 03) as u8, // 3
+            great_strides:  ((st & 0x0000000000000006) >> 01) as u8, // 2
             heart_and_soul: ((st & 0x0000000000000001) != 0)  // 1 
         }
     }
@@ -62,7 +62,7 @@ pub struct DPCache {
     pub hits: u64,
     pub items: u64,
     check_time: bool,
-    max_dur: i8
+    max_dur: u8
 }
 
 
@@ -75,7 +75,7 @@ pub fn unpack_method(packed_result: u64) -> (u16, u8, u64) {
     ((packed_result >> 48) as u16, (packed_result >> 40) as u8, packed_result & ((1 << 40) - 1))
 }
 
-pub fn apply_igs(quality: u16, innovation: i8, great_strides: i8, inner_quiet: u8) -> u16 {
+pub fn apply_igs(quality: u16, innovation: u8, great_strides: u8, inner_quiet: u8) -> u16 {
     quality * (10 + inner_quiet as u16) / 20 * (2 + (if innovation > 0 {1} else {0}) + (if great_strides > 0 {2} else {0}))
 }
 
@@ -88,7 +88,7 @@ pub static ACTIONS: [&str; 20] = ["(finished)", "",
     "Observe", "Byregot's", "Precise Touch"];
 
 impl DPCache {
-    pub fn new(max_dur: i8, check_time: bool) -> DPCache {
+    pub fn new(max_dur: u8, check_time: bool) -> DPCache {
         DPCache {
             cache: HashMap::new(),
             hits: 0,
@@ -135,10 +135,10 @@ impl DPCache {
                 time: if self.check_time {time - 3} else {0}, 
                 inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 18,
-                durability: durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
-                manipulation: max(manipulation - 1, 0),
-                waste_not: max(waste_not - 1, 0),
-                innovation: max(innovation - 1, 0),
+                durability: durability + min(*waste_not, 1) + min(*manipulation, 1) - 2,
+                manipulation: max(*manipulation, 1) - 1,
+                waste_not: max(*waste_not, 1) - 1,
+                innovation: max(*innovation, 1) - 1,
                 great_strides: 0,
                 heart_and_soul: *heart_and_soul
             };
@@ -151,10 +151,10 @@ impl DPCache {
                 time: if self.check_time {time - 3} else {0}, 
                 inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 32,
-                durability: durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
-                manipulation: max(manipulation - 1, 0),
-                waste_not: max(waste_not - 1, 0),
-                innovation: max(innovation - 1, 0),
+                durability: durability + min(*waste_not, 1) + min(*manipulation, 1) - 2,
+                manipulation: max(*manipulation, 1) - 1,
+                waste_not: max(*waste_not, 1) - 1,
+                innovation: max(*innovation, 1) - 1,
                 great_strides: 0,
                 heart_and_soul: *heart_and_soul
             };
@@ -167,10 +167,10 @@ impl DPCache {
                 time: if self.check_time {time - 3} else {0}, 
                 inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 46,
-                durability: durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
-                manipulation: max(manipulation - 1, 0),
-                waste_not: max(waste_not - 1, 0),
-                innovation: max(innovation - 1, 0),
+                durability: durability + min(*waste_not, 1) + min(*manipulation, 1) - 2,
+                manipulation: max(*manipulation, 1) - 1,
+                waste_not: max(*waste_not, 1) - 1,
+                innovation: max(*innovation, 1) - 1,
                 great_strides: 0,
                 heart_and_soul: *heart_and_soul
             };
@@ -183,10 +183,10 @@ impl DPCache {
                 time: if self.check_time {time - 6} else {0}, 
                 inner_quiet: min(inner_quiet + 2, 10), 
                 cp: cp - 36,
-                durability: durability - 4 + min(*waste_not, 2) + min(*manipulation, 2),
-                manipulation: max(manipulation - 2, 0),
-                waste_not: max(waste_not - 2, 0),
-                innovation: max(innovation - 2, 0),
+                durability: durability + min(*waste_not, 2) + min(*manipulation, 2) - 4,
+                manipulation: max(*manipulation, 2) - 2,
+                waste_not: max(*waste_not, 2) - 2,
+                innovation: max(*innovation, 2) - 2,
                 great_strides: 0,
                 heart_and_soul: *heart_and_soul
             };
@@ -200,10 +200,10 @@ impl DPCache {
                 time: if self.check_time {time - 9} else {0}, 
                 inner_quiet: min(inner_quiet + 3, 10), 
                 cp: cp - 54,
-                durability: durability - 6 + min(*waste_not, 3) + min(*manipulation, 3),
-                manipulation: max(manipulation - 3, 0),
-                waste_not: max(waste_not - 3, 0),
-                innovation: max(innovation - 3, 0),
+                durability: durability + min(*waste_not, 3) + min(*manipulation, 3) - 6,
+                manipulation: max(*manipulation, 3) - 3,
+                waste_not: max(*waste_not, 3) - 3,
+                innovation: max(*innovation, 3) - 3,
                 great_strides: 0,
                 heart_and_soul: *heart_and_soul
             };
@@ -218,14 +218,14 @@ impl DPCache {
                 time: if self.check_time {time - 5} else {0}, 
                 inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 25,
-                durability: durability - (if *waste_not > 1 {1} else {2}) + min(*manipulation, 2),
-                manipulation: max(manipulation - 2, 0),
-                waste_not: max(waste_not - 2, 0),
-                innovation: max(innovation - 2, 0),
+                durability: durability + min(*manipulation, 2) - (if *waste_not > 1 {1} else {2}),
+                manipulation: max(*manipulation, 2) - 2,
+                waste_not: max(*waste_not, 2) - 2,
+                innovation: max(*innovation, 2) - 2,
                 great_strides: 0,
                 heart_and_soul: *heart_and_soul
             };
-            let qual = apply_igs(UNIT * 3 / 2, innovation - 1, great_strides - 1, *inner_quiet);
+            let qual = apply_igs(UNIT * 3 / 2, max(*innovation, 1) - 1, max(*great_strides, 1) - 1, *inner_quiet);
             quality_results[6] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 6, &new_state, self.check_time);
         }
         // Prudent Touch
@@ -234,10 +234,10 @@ impl DPCache {
                 time: if self.check_time {time - 3} else {0}, 
                 inner_quiet: min(inner_quiet + 1, 10), 
                 cp: cp - 25,
-                durability: durability - 1 + min(*manipulation, 1),
-                manipulation: max(manipulation - 1, 0),
+                durability: durability + min(*manipulation, 1) - 1,
+                manipulation: max(*manipulation, 1) - 1,
                 waste_not: 0,
-                innovation: max(innovation - 1, 0),
+                innovation: max(*innovation, 1) - 1,
                 great_strides: 0,
                 heart_and_soul: *heart_and_soul
             };
@@ -251,9 +251,9 @@ impl DPCache {
                 inner_quiet: min(*inner_quiet + 2, 10), 
                 cp: cp - 40,
                 durability: durability - 4 + (if *waste_not > 0 {2} else {0}) + min(*manipulation, 1),
-                manipulation: max(manipulation - 1, 0),
-                waste_not: max(waste_not - 1, 0),
-                innovation: max(innovation - 1, 0),
+                manipulation: max(*manipulation, 1) - 1,
+                waste_not: max(*waste_not, 1) - 1,
+                innovation: max(*innovation, 1) - 1,
                 great_strides: 0,
                 heart_and_soul: *heart_and_soul
             };
@@ -267,9 +267,9 @@ impl DPCache {
                 inner_quiet: 10, 
                 cp: cp - 32,
                 durability: durability + min(*manipulation, 1),
-                manipulation: max(manipulation - 1, 0),
-                waste_not: max(waste_not - 1, 0),
-                innovation: max(innovation - 1, 0),
+                manipulation: max(*manipulation, 1) - 1,
+                waste_not: max(*waste_not, 1) - 1,
+                innovation: max(*innovation, 1) - 1,
                 great_strides: 0,
                 heart_and_soul: *heart_and_soul
             };
@@ -283,10 +283,10 @@ impl DPCache {
                 inner_quiet: *inner_quiet, 
                 cp: cp - 56,
                 durability: durability + min(*manipulation, 1),
-                manipulation: max(manipulation - 1, 0),
+                manipulation: max(*manipulation, 1) - 1,
                 waste_not: 4,
-                innovation: max(innovation - 1, 0),
-                great_strides: max(great_strides - 1, 0),
+                innovation: max(*innovation, 1) - 1,
+                great_strides: max(*great_strides, 1) - 1,
                 heart_and_soul: *heart_and_soul
             };
             quality_results[10] = pack_method((self.query(&new_state) >> 48) as u16, 10, &new_state, self.check_time);
@@ -298,10 +298,10 @@ impl DPCache {
                 inner_quiet: *inner_quiet, 
                 cp: cp - 98,
                 durability: durability + min(*manipulation, 1),
-                manipulation: max(manipulation - 1, 0),
+                manipulation: max(*manipulation, 1) - 1,
                 waste_not: 8,
-                innovation: max(innovation - 1, 0),
-                great_strides: max(great_strides - 1, 0),
+                innovation: max(*innovation, 1) - 1,
+                great_strides: max(*great_strides, 1) - 1,
                 heart_and_soul: *heart_and_soul
             };
             quality_results[11] = pack_method((self.query(&new_state) >> 48) as u16, 11, &new_state, self.check_time);
@@ -314,9 +314,9 @@ impl DPCache {
                 cp: cp - 96,
                 durability: *durability,
                 manipulation: 8,
-                waste_not: max(waste_not - 1, 0),
-                innovation: max(innovation - 1, 0),
-                great_strides: max(great_strides - 1, 0),
+                waste_not: max(*waste_not, 1) - 1,
+                innovation: max(*innovation, 1) - 1,
+                great_strides: max(*great_strides, 1) - 1,
                 heart_and_soul: *heart_and_soul
             };
             quality_results[12] = pack_method((self.query(&new_state) >> 48) as u16, 12, &new_state, self.check_time);
@@ -328,10 +328,10 @@ impl DPCache {
                 inner_quiet: *inner_quiet, 
                 cp: cp - 88,
                 durability: *durability + 3 + min(*manipulation, 1),
-                manipulation: max(manipulation - 1, 0),
-                waste_not: max(waste_not - 1, 0),
-                innovation: max(innovation - 1, 0),
-                great_strides: max(great_strides - 1, 0),
+                manipulation: max(*manipulation, 1) - 1,
+                waste_not: max(*waste_not, 1) - 1,
+                innovation: max(*innovation, 1) - 1,
+                great_strides: max(*great_strides, 1) - 1,
                 heart_and_soul: *heart_and_soul
             };
             quality_results[13] = pack_method((self.query(&new_state) >> 48) as u16, 13, &new_state, self.check_time);
@@ -343,10 +343,10 @@ impl DPCache {
                 inner_quiet: *inner_quiet, 
                 cp: cp - 18,
                 durability: *durability + min(*manipulation, 1),
-                manipulation: max(manipulation - 1, 0),
-                waste_not: max(waste_not - 1, 0),
+                manipulation: max(*manipulation, 1) - 1,
+                waste_not: max(*waste_not, 1) - 1,
                 innovation: 4,
-                great_strides: max(great_strides - 1, 0),
+                great_strides: max(*great_strides, 1) - 1,
                 heart_and_soul: *heart_and_soul
             };
             quality_results[14] = pack_method((self.query(&new_state) >> 48) as u16, 14, &new_state, self.check_time);
@@ -358,9 +358,9 @@ impl DPCache {
                 inner_quiet: *inner_quiet, 
                 cp: cp - 32,
                 durability: *durability + min(*manipulation, 1),
-                manipulation: max(manipulation - 1, 0),
-                waste_not: max(waste_not - 1, 0),
-                innovation: max(innovation - 1, 0),
+                manipulation: max(*manipulation, 1) - 1,
+                waste_not: max(*waste_not, 1) - 1,
+                innovation: max(*innovation, 1) - 1,
                 great_strides: 3,
                 heart_and_soul: *heart_and_soul
             };
@@ -388,9 +388,9 @@ impl DPCache {
                 inner_quiet: 0, 
                 cp: cp - 24,
                 durability: *durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
-                manipulation: max(manipulation - 1, 0),
-                waste_not: max(waste_not - 1, 0),
-                innovation: max(innovation - 1, 0),
+                manipulation: max(*manipulation, 1) - 1,
+                waste_not: max(*waste_not, 1) - 1,
+                innovation: max(*innovation, 1) - 1,
                 great_strides: 0,
                 heart_and_soul: *heart_and_soul
             };
@@ -404,9 +404,9 @@ impl DPCache {
                 inner_quiet: min(inner_quiet + 2, 10), 
                 cp: cp - 18,
                 durability: *durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
-                manipulation: max(manipulation - 1, 0),
-                waste_not: max(waste_not - 1, 0),
-                innovation: max(innovation - 1, 0),
+                manipulation: max(*manipulation, 1) - 1,
+                waste_not: max(*waste_not, 1) - 1,
+                innovation: max(*innovation, 1) - 1,
                 great_strides: 0,
                 heart_and_soul: false
             };

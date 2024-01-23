@@ -16,7 +16,6 @@ use std::fs::File;
 use serde_json;
 
 use crate::qual::DPCache;
-use crate::server::AsyncCache;
 
 type Materials = Vec<(u16, u8)>;
 
@@ -27,7 +26,7 @@ struct Statline {
     cms: u16,
     ctrl: u16,
     rlvl: u16,
-    dur: i8,
+    dur: u8,
     prog: u32,
     qual: u32,
     has: bool,

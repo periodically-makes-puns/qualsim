@@ -3,11 +3,11 @@ pub struct State {
     pub time: u8, // 0-89, 7 bits
     pub inner_quiet: u8, // 0-10, 4 bits
     pub cp: u16, // 0-699, 10 bits
-    pub durability: i8, // 0-16, 5 bits
-    pub manipulation: i8, // 0-8, 4 bits
-    pub waste_not: i8, // 0-8, 4 bits
-    pub veneration: i8,
-    pub muscle_memory: i8, 
+    pub durability: u8, // 0-16, 5 bits
+    pub manipulation: u8, // 0-8, 4 bits
+    pub waste_not: u8, // 0-8, 4 bits
+    pub veneration: u8,
+    pub muscle_memory: u8, 
     pub heart_and_soul: bool,
     pub reflect: bool,
     pub progress: u16
@@ -26,14 +26,14 @@ mod actions {
     }
     pub struct Action {
         pub progress: u16, // Efficiency x10
-        pub durability: i8, // 5dur = 1
+        pub durability: u8, // 5dur = 1
         pub cp: u16,
         pub status: Status,
-        pub duration: i8
+        pub duration: u8
     }
 
     impl Action {
-        pub const fn new(progress: u16, durability: i8, cp: u16, status: Status, duration: i8) -> Action {
+        pub const fn new(progress: u16, durability: u8, cp: u16, status: Status, duration: u8) -> Action {
             Action {
                 progress,
                 durability,
@@ -147,14 +147,14 @@ impl State {
 pub struct Finisher<'a> {
     pub time: u8,
     pub cp: u16,
-    pub durability: i8,
+    pub durability: u8,
     pub progress: u16,
     pub heart_and_soul: bool,
     pub description: &'a str
 }
 
 impl Finisher<'_> {
-    pub const fn new(time: u8, cp: u16, durability: i8, progress: u16, heart_and_soul: bool, description: &str) -> Finisher {
+    pub const fn new(time: u8, cp: u16, durability: u8, progress: u16, heart_and_soul: bool, description: &str) -> Finisher {
         Finisher {
             time,
             cp,
