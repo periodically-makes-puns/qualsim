@@ -1,6 +1,6 @@
 pub mod qual;
 pub mod prog;
-pub mod server;
+pub mod statline;
 use std::collections::HashSet;
 use std::error;
 use std::time::Instant;
@@ -17,8 +17,6 @@ use serde_json;
 
 use crate::qual::DPCache;
 
-type Materials = Vec<(u16, u8)>;
-
 #[derive(Serialize, Deserialize)]
 struct Statline {
     time: u8,
@@ -29,8 +27,7 @@ struct Statline {
     dur: u8,
     prog: u32,
     qual: u32,
-    has: bool,
-    materials: Option<Materials>
+    has: bool
 }
 
 impl Statline {

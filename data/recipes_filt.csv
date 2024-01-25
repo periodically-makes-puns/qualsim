@@ -1,0 +1,460 @@
+name,rlvl,lvl,stars,prog,qual,dur,pdiv,qdiv,pmod,qmod,reqqual,expert
+Bronze Ingot,1,1,0,9,80,40,50,30,100,100,0,False
+Bronze Hatchet,1,1,0,19,100,60,50,30,100,100,0,False
+Bronze Bastard Sword,2,2,0,20,110,60,50,30,100,100,0,False
+Bronze Rivets,3,3,0,10,96,40,50,30,100,100,0,False
+Bronze War Axe,3,3,0,20,120,60,50,30,100,100,0,False
+Amateur's Awl,4,4,0,21,130,60,50,30,100,100,0,False
+Amateur's Claw Hammer,5,5,0,33,150,60,50,30,100,100,0,False
+Amateur's Culinary Knife,6,6,0,36,170,60,50,30,100,100,0,False
+Viking Sword,7,7,0,37,190,60,50,30,100,100,0,False
+Bronze Pickaxe,8,8,0,41,210,60,50,30,100,100,0,False
+Cloud Axe,9,9,0,63,172,60,50,30,100,100,0,False
+Bronze Claw Hammer,9,9,0,42,230,60,50,30,100,100,0,False
+Bronze File,10,10,0,45,250,60,50,30,100,100,0,False
+Bronze Awl,11,11,0,48,270,60,50,30,100,100,0,False
+Bronze Culinary Knife,12,12,0,53,290,60,50,30,100,100,0,False
+Bronze Ornamental Hammer,12,12,0,79,217,60,50,30,100,100,0,False
+Bronze Knuckles,13,13,0,54,310,60,50,30,100,100,0,False
+Spiked Bronze Labrys,14,14,0,54,330,60,50,30,100,100,0,False
+Brass Head Knife,14,14,0,81,247,60,50,30,100,100,0,False
+Birdsbeak Hammer,15,15,0,55,360,70,50,30,100,100,0,False
+Iron Ingot,16,16,0,31,312,40,50,30,100,100,0,False
+Plumed Bronze Pickaxe,16,16,0,94,292,70,50,30,100,100,0,False
+Iron War Axe,17,17,0,66,420,70,50,30,100,100,0,False
+Iron Rivets,18,18,0,33,360,40,50,30,100,100,0,False
+Iron Cross-pein Hammer,18,18,0,67,450,70,50,30,100,100,0,False
+Iron Awl,19,19,0,68,480,70,50,30,100,100,0,False
+Brass Viking Sword,20,20,0,111,382,70,50,30,100,100,0,False
+Iron Pickaxe,20,20,0,74,510,70,50,30,100,100,0,False
+Iron Culinary Knife,21,21,0,75,540,70,50,30,100,100,0,False
+Inferno Axe,21,21,0,112,405,70,50,30,100,100,0,False
+Iron File,22,22,0,75,570,70,50,30,100,100,0,False
+Iron Sledgehammer,23,23,0,79,600,70,50,30,100,100,0,False
+Iron Bill,24,24,0,85,630,70,50,30,100,100,0,False
+Brass Hatchet,24,24,0,127,472,70,50,30,100,100,0,False
+Iron Round Knife,25,25,0,89,660,70,50,30,100,100,0,False
+Steel Ingot,26,26,0,45,552,40,50,30,100,100,0,False
+Iron Ornamental Hammer,26,26,0,135,517,70,50,30,100,100,0,False
+Iron Raising Hammer,26,26,0,90,690,70,50,30,100,100,0,False
+Initiate's File,27,27,0,91,720,70,50,30,100,100,0,False
+Steel Broadsword,28,28,0,100,760,70,50,30,100,100,0,False
+Steel Rivets,29,29,0,50,640,40,50,30,100,100,0,False
+Iron Head Knife,29,29,0,101,800,70,50,30,100,100,0,False
+Heavy Crowsbeak Hammer,29,29,0,151,600,70,50,30,100,100,0,False
+Steel Chaser Hammer,30,30,0,102,850,70,50,30,100,100,0,False
+Silver Head Knife,30,30,0,153,637,70,50,30,100,100,0,False
+Steel Awl,31,31,0,106,900,80,50,30,100,100,0,False
+Steel Culinary Knife,32,32,0,110,950,80,50,30,100,100,0,False
+Steel Scythe,33,33,0,111,1000,80,50,30,100,100,0,False
+Wrapped Steel Sledgehammer,33,33,0,166,750,80,50,30,100,100,0,False
+Plumed Steel Hatchet,35,35,0,123,1110,80,50,30,100,100,0,False
+Steel File,34,34,0,115,1050,80,50,30,100,100,0,False
+Heavy Steel Mortar,35,35,0,184,832,80,50,30,100,100,0,False
+Steel Round Knife,36,36,0,124,1160,80,50,30,100,100,0,False
+Wrapped Steel Claw Hammer,36,36,0,186,870,80,50,30,100,100,0,False
+Steel Longsword,37,37,0,128,1220,80,50,30,100,100,0,False
+Mythril Ingot,38,38,0,64,1024,40,50,30,100,100,0,False
+Plumed Mythril Pickaxe,38,38,0,129,1280,80,50,30,100,100,0,False
+Mythril Rivets,39,39,0,68,1072,40,50,30,100,100,0,False
+Spiked Mythril Labrys,39,39,0,137,1340,80,50,30,100,100,0,False
+Mythril Ornamental Hammer,40,40,0,138,1400,80,50,30,100,100,0,False
+Mythril Culinary Knife,41,41,0,143,1460,80,50,30,100,100,0,False
+Cobalt Ingot,42,42,0,72,1216,40,50,30,100,100,0,False
+Mythril Pliers,42,42,0,144,1520,80,50,30,100,100,0,False
+Cobalt Rivets,43,43,0,77,1264,40,50,30,100,100,0,False
+Cobalt Shamshir,43,43,0,155,1580,80,50,30,100,100,0,False
+Demilune Bhuj,45,45,0,158,1700,80,50,30,100,100,0,False
+Wrapped Hawksbeak Hammer,45,45,0,237,1275,80,50,30,100,100,0,False
+Bas-relief Cobalt Saw,46,46,0,159,1760,80,50,30,100,100,0,False
+Electrum Lapidary Hammer,47,47,0,167,1820,80,50,30,100,100,0,False
+Egret Dolabra,48,48,0,172,1880,80,50,30,100,100,0,False
+Horned Hatchet,49,49,0,174,1940,80,50,30,100,100,0,False
+Bronze Rivets,2,2,0,10,88,40,50,30,100,100,0,False
+Iron Ingot,13,13,0,27,248,40,50,30,100,100,0,False
+Iron Rivets,14,14,0,27,264,40,50,30,100,100,0,False
+Iron Rings,15,15,0,27,288,40,50,30,100,100,0,False
+Brass Alembic,15,15,0,82,270,70,50,30,100,100,0,False
+Steel Plate,27,27,0,45,576,40,50,30,100,100,0,False
+Steel Rings,28,28,0,50,608,40,50,30,100,100,0,False
+Decorated Iron Scutum,34,34,0,172,787,80,50,30,100,100,0,False
+Mythril Ingot,36,36,0,62,928,40,50,30,100,100,0,False
+Mythril Rings,37,37,0,64,976,40,50,30,100,100,0,False
+Cobalt Rivets,44,44,0,78,1312,40,50,30,100,100,0,False
+Reinforced Mythril Elmo,44,44,0,234,1230,80,50,30,100,100,0,False
+Cobalt Vambraces,44,44,0,156,1640,80,50,30,100,100,0,False
+Kite Shield,50,50,0,180,2000,80,50,30,100,100,0,False
+Hard Leather,8,8,0,20,168,40,50,30,100,100,0,False
+Hard Leather Ringbands,16,16,0,63,390,70,50,30,100,100,0,False
+Aldgoat Leather,17,17,0,33,336,40,50,30,100,100,0,False
+Boar Leather,33,33,0,55,800,40,50,30,100,100,0,False
+Raptor Leather,41,41,0,71,1168,40,50,30,100,100,0,False
+Boarskin Ringbands of Tremors,43,43,0,232,1185,80,50,30,100,100,0,False
+Cotton Yarn,12,12,0,26,232,40,50,30,100,100,0,False
+Dew Thread,23,23,0,39,480,40,50,30,100,100,0,False
+Undyed Velveteen,24,24,0,42,504,40,50,30,100,100,0,False
+Linen Yarn,32,32,0,55,760,40,50,30,100,100,0,False
+Copper Rings,4,4,0,10,104,40,50,30,100,100,0,False
+Ragstone Whetstone,6,6,0,18,136,40,50,30,100,100,0,False
+Decorated Bone Staff,13,13,0,81,232,60,50,30,100,100,0,False
+Toothed Ramhorn Staff,17,17,0,99,315,70,50,30,100,100,0,False
+Mudstone Whetstone,20,20,0,37,408,40,50,30,100,100,0,False
+Eye of Ice,22,22,0,37,456,40,50,30,100,100,0,False
+Silver Magnifiers,25,25,0,133,495,70,50,30,100,100,0,False
+Siltstone Whetstone,30,30,0,51,680,40,50,30,100,100,0,False
+Mythril Ingot,34,34,0,57,840,40,50,30,100,100,0,False
+Mythril Rings,35,35,0,61,888,40,50,30,100,100,0,False
+Jadeite,40,40,0,69,1120,40,50,30,100,100,0,False
+Black Pearl,45,45,0,79,1360,40,50,30,100,100,0,False
+Smooth Butter,7,7,0,18,152,40,50,30,100,100,0,False
+Kukuru Butter,10,10,0,22,200,40,50,30,100,100,0,False
+Olive Oil,11,11,0,24,216,40,50,30,100,100,0,False
+Dark Vinegar,31,31,0,53,720,40,50,30,100,100,0,False
+Yew Lumber,21,21,0,37,432,40,50,30,100,100,0,False
+Walnut Lumber,25,25,0,44,528,40,50,30,100,100,0,False
+Horn Fishing Rod,37,37,0,192,915,80,50,30,100,100,0,False
+Gilded Rosewood Fishing Rod,48,48,0,258,1410,80,50,30,100,100,0,False
+Crab Bow,49,49,0,261,1455,80,50,30,100,100,0,False
+Whispering Maple Wand,8,8,0,61,157,60,50,30,100,100,0,False
+Engraved Leather Grimoire,10,10,0,67,187,60,50,30,100,100,0,False
+Budding Maple Wand,11,11,0,72,202,60,50,30,100,100,0,False
+Jellyfish Humours,19,19,0,34,384,40,50,30,100,100,0,False
+Whispering Ash Wand,27,27,0,136,540,70,50,30,100,100,0,False
+Wrapped Crowsbeak Hammer,38,38,0,193,960,80,50,30,100,100,0,False
+Darksteel Nugget,55,50,1,105,1760,40,50,30,100,100,0,False
+Darksteel Ingot,70,50,2,125,2000,40,50,30,80,70,0,False
+Avenger Grips,70,50,2,250,2500,80,50,30,80,70,0,False
+Aeolian Scimitar,55,50,1,210,2200,80,50,30,100,100,0,False
+Electrum Alembic,42,42,0,216,1140,80,50,30,100,100,0,False
+Dodore Leather,47,47,0,83,1456,40,50,30,100,100,0,False
+Wind-up Qiqirn,50,50,0,90,2000,80,50,30,100,100,0,False
+Riviera Cottage Roof (Wood),20,20,0,74,255,70,50,30,100,100,0,False
+Riviera Cottage Roof (Composite),19,19,0,68,240,70,50,30,100,100,0,False
+Riviera Cottage Roof (Stone),24,24,0,85,315,70,50,30,100,100,0,False
+Riviera House Roof (Wood),36,36,0,124,580,80,50,30,100,100,0,False
+Riviera House Roof (Composite),35,35,0,123,555,80,50,30,100,100,0,False
+Riviera House Roof (Stone),41,41,0,143,730,80,50,30,100,100,0,False
+Riviera Mansion Roof (Wood),55,50,1,210,1100,80,50,30,100,100,0,False
+Glade Cottage Roof (Wood),17,17,0,66,210,70,50,30,100,100,0,False
+Glade Cottage Roof (Composite),23,23,0,79,300,70,50,30,100,100,0,False
+Glade Cottage Roof (Stone),21,21,0,75,270,70,50,30,100,100,0,False
+Glade House Roof (Wood),34,34,0,115,525,80,50,30,100,100,0,False
+Glade House Roof (Composite),40,40,0,138,700,80,50,30,100,100,0,False
+Glade House Roof (Stone),38,38,0,129,640,80,50,30,100,100,0,False
+Oasis Cottage Roof (Wood),22,22,0,75,285,70,50,30,100,100,0,False
+Oasis House Roof (Wood),39,39,0,137,670,80,50,30,100,100,0,False
+Glade Cottage Wall (Wood),18,18,0,67,225,70,50,30,100,100,0,False
+Riviera Arched Window,14,14,0,54,165,60,50,30,100,100,0,False
+Glade Classical Window,13,13,0,54,155,60,50,30,100,100,0,False
+Glade Lancet Window,16,16,0,63,195,70,50,30,100,100,0,False
+Oasis Octagonal Window,15,15,0,55,180,70,50,30,100,100,0,False
+Riviera Wooden Door,32,32,0,110,475,80,50,30,100,100,0,False
+Riviera Studded Door,29,29,0,101,400,70,50,30,100,100,0,False
+Riviera Ornate Door,27,27,0,91,360,70,50,30,100,100,0,False
+Glade Classical Door,31,31,0,106,450,80,50,30,100,100,0,False
+Glade Lancet Door,26,26,0,90,345,70,50,30,100,100,0,False
+Oasis Classical Door,30,30,0,102,425,70,50,30,100,100,0,False
+Riviera Stone Chimney,37,37,0,128,610,80,50,30,100,100,0,False
+Glade Rounded Chimney,45,45,0,158,850,80,50,30,100,100,0,False
+Chocobo Weathervane,50,50,0,180,1000,80,50,30,100,100,0,False
+Apkallu Weathervane,42,42,0,144,760,80,50,30,100,100,0,False
+Cactuar Weathervane,47,47,0,167,910,80,50,30,100,100,0,False
+Riviera Wooden Awning,28,28,0,100,380,70,50,30,100,100,0,False
+Oasis Awning,44,44,0,156,820,80,50,30,100,100,0,False
+Glade Placard,25,25,0,89,330,70,50,30,100,100,0,False
+Riviera Hanging Placard,43,43,0,155,790,80,50,30,100,100,0,False
+Oasis Hanging Placard,46,46,0,159,880,80,50,30,100,100,0,False
+Oasis Wooden Wall,33,33,0,111,500,80,50,30,100,100,0,False
+Riviera Chandelier,48,48,0,172,940,80,50,30,100,100,0,False
+Oasis Chandelier,49,49,0,174,970,80,50,30,100,100,0,False
+Illumination Module,70,50,2,250,1250,80,50,30,80,70,0,False
+Firewood,12,12,0,53,145,60,50,30,100,100,0,False
+Coronal Wristband,90,50,3,420,2750,80,50,30,80,70,0,False
+Tidal Barding,90,50,3,210,2750,80,50,30,80,70,0,False
+Fish Meal,5,5,0,16,120,40,50,30,100,100,0,False
+Summoning Bell,90,50,3,420,1375,80,50,30,80,70,0,False
+Magicked Stable Broom,70,50,2,125,2500,80,50,30,80,70,0,False
+Ice Barding,110,50,4,240,2900,80,50,30,80,70,0,False
+Riviera Canopy Bed,110,50,4,480,1450,80,50,30,80,70,0,False
+Grade 1 Feed - Speed Blend,30,30,0,51,850,70,50,30,100,100,0,False
+Cedar Lumber,115,51,0,110,1656,40,61,39,100,100,0,False
+Mythrite Trident,115,51,0,220,2070,80,61,39,100,100,0,False
+Mythrite Pugil Stick,125,52,0,260,2140,80,62,43,100,100,0,False
+Titanium Lance,133,54,0,340,2280,80,64,44,100,100,0,False
+Titanium Fork,139,56,0,420,2420,70,66,46,100,100,0,False
+Adamantite Spear,145,58,0,500,2560,70,68,48,100,100,0,False
+Dark Chestnut Fishing Rod,136,55,0,380,2350,70,65,45,100,100,0,False
+Hallowed Chestnut Fishing Rod,142,57,0,460,2490,70,67,47,100,100,0,False
+Astral Grinding Wheel,130,53,0,300,2210,80,63,43,100,100,0,False
+Dragonscale Grinding Wheel,148,59,0,540,2630,70,69,49,100,100,0,False
+Alpine Chair,136,55,0,380,1175,70,65,45,100,100,0,False
+Cask Rack,125,52,0,260,1070,80,62,43,100,100,0,False
+Royal Plotting Table,142,57,0,460,1245,70,67,47,100,100,0,False
+Round Banquet Table,115,51,0,220,1035,80,61,39,100,100,0,False
+Holy Cedar Lumber,125,52,0,130,1712,40,62,43,100,100,0,False
+Dark Chestnut Lumber,133,54,0,170,1824,40,64,44,100,100,0,False
+Hallowed Chestnut Lumber,139,56,0,210,1936,35,66,46,100,100,0,False
+Birch Lumber,145,58,0,250,2048,35,68,48,100,100,0,False
+Stained Crystal Interior Wall,130,53,0,300,1105,80,63,43,100,100,0,False
+Larimar,130,53,0,150,1768,40,63,43,100,100,0,False
+Star Ruby,136,55,0,190,1880,35,65,45,100,100,0,False
+Citrine,148,59,0,270,2104,35,69,49,100,100,0,False
+Chrysolite,150,60,0,290,2160,35,70,50,100,100,0,False
+Carnelian,142,57,0,230,1992,35,67,47,100,100,0,False
+Bladed Steel Jig,150,60,0,580,2700,70,70,50,100,100,0,False
+Highland Barding,40,40,0,69,1400,80,50,30,100,100,0,False
+Riviera Lunch,139,56,0,420,1210,70,66,46,100,100,0,False
+Orthodox Barding,139,56,0,210,2420,70,66,46,100,100,0,False
+Oriental Grass Plot,148,59,0,540,1315,70,69,49,100,100,0,False
+Alpine Supper Set,150,60,0,580,1350,70,70,50,100,100,0,False
+Blank Grade 2 Orchestrion Roll,90,50,3,210,2200,40,50,30,80,70,0,False
+Tier 2 Aquarium,145,58,0,500,1280,70,68,48,100,100,0,False
+High Steel Katzbalger,255,61,0,630,2790,80,81,58,100,100,0,False
+High Steel Longsword,270,63,0,730,2970,80,83,64,100,100,0,False
+High Steel Fork,265,62,0,680,2880,80,82,61,100,100,0,False
+Doman Iron Longsword,273,64,0,780,3060,80,84,65,100,100,0,False
+Doman Iron Daggers,276,65,0,830,3150,80,85,66,100,100,0,False
+Doman Steel Longsword,279,66,0,880,3240,80,86,66,100,100,0,False
+Doman Steel Main Gauches,282,67,0,930,3330,80,87,68,100,100,0,False
+Molybdenum Longsword,285,68,0,980,3420,80,88,68,100,100,0,False
+Palladium Rod,288,69,0,1030,3510,80,89,68,100,100,0,False
+Imperial Jade Earrings of Fending,290,70,0,1080,3600,80,90,70,100,100,0,False
+Stuffed Dhalmel,270,63,0,730,1485,80,83,64,100,100,0,False
+Stuffed Gagana,290,70,0,1080,1800,80,90,70,100,100,0,False
+Oriental Dressing Case,276,65,0,830,1575,80,85,66,100,100,0,False
+Doman Partition,285,68,0,980,1710,80,88,68,100,100,0,False
+Oriental Soba Lunch,279,66,0,880,1620,80,86,66,100,100,0,False
+Oriental Udon Lunch,273,64,0,780,1530,80,84,65,100,100,0,False
+Jellied Compote,300,70,1,1140,4200,70,90,70,100,100,0,False
+Gyr Abanian Flour,255,61,0,315,2232,40,81,58,100,100,0,False
+Firm Tofu,273,64,0,390,2448,40,84,65,100,100,0,False
+Rice Vinegar,276,65,0,415,2520,40,85,66,100,100,0,False
+Cottonseed Oil,270,63,0,365,2376,40,83,64,100,100,0,False
+Algae Salt,265,62,0,340,2304,40,82,61,100,100,0,False
+Enchanted Palladium Ink,285,68,0,490,2736,40,88,68,100,100,0,False
+Growth Formula Theta,279,66,0,440,2592,40,86,66,100,100,0,False
+Rhodonite,290,70,0,540,2880,40,90,70,100,100,0,False
+Hingan Cottage Roof (Mokuzo),255,61,0,630,1395,80,81,58,100,100,0,False
+Hingan Fence (Mokuzo),265,62,0,680,1440,80,82,61,100,100,0,False
+Paper Partition,288,69,0,1030,1755,80,89,68,100,100,0,False
+White Oak Lumber,390,71,0,597,3010,40,101,81,100,100,0,False
+Miracle Apple Lumber,395,72,0,610,3040,40,102,82,100,100,0,False
+White Ash Lumber,403,74,0,680,3200,40,104,84,100,100,0,False
+Sandteak Lumber,409,76,0,750,3360,40,106,86,100,100,0,False
+Lignum Vitae Lumber,415,78,0,820,3520,40,108,88,100,100,0,False
+Onyx,430,80,0,890,3680,40,110,90,100,100,0,False
+Grade 1 Strength Alkahest,400,73,0,645,3120,40,103,83,100,100,0,False
+Starch Glue,406,75,0,715,3280,40,105,85,100,100,0,False
+Tincture of Strength,430,80,0,1780,4600,80,110,90,100,100,0,False
+Tincture of Vitality,418,79,0,1710,4500,80,109,89,100,100,0,False
+Competent Craftsman's Syrup,406,75,0,1430,4100,80,105,85,100,100,0,False
+Commanding Craftsman's Syrup,412,77,0,1570,4300,80,107,87,100,100,0,False
+Superior Spiritbond Potion,395,72,0,1220,3800,80,102,82,100,100,0,False
+Grilled Rail,390,71,0,1195,3763,80,101,81,100,100,0,False
+Spaghetti al Nero,400,73,0,1290,3900,80,103,83,100,100,0,False
+Baguette,403,74,0,1360,4000,80,104,84,100,100,0,False
+Sausage Links,409,76,0,1500,4200,80,106,86,100,100,0,False
+Risotto al Nero,415,78,0,1640,4400,80,108,88,100,100,0,False
+Crystarium Chandelier,409,76,0,1500,2100,80,106,86,100,100,0,False
+Hunting Supplies,133,54,0,340,1140,80,64,44,100,100,0,False
+Crystarium Bench,412,77,0,1570,2150,80,107,87,100,100,0,False
+Crystarium Mechanical Till,430,80,0,1780,2300,80,110,90,100,100,0,False
+Eulmoran Inner Wall,415,78,0,1640,2200,80,108,88,100,100,0,False
+Imitation Long Window,403,74,0,1360,2000,80,104,84,100,100,0,False
+High Durium Sword,517,81,0,2000,5200,80,121,105,100,100,0,False
+High Durium Longsword,520,82,0,2300,5700,80,122,106,100,100,0,False
+High Durium Cesti,525,83,0,2600,6200,80,123,107,100,100,0,False
+Bismuth Katzbalger,530,84,0,2900,6600,80,124,108,100,100,0,False
+Bismuth Shield,535,85,0,3000,6700,80,125,109,100,100,0,False
+Manganese Sword,540,86,0,3100,6800,80,126,110,100,100,0,False
+Manganese Armor of the Behemoth King,545,87,0,3200,6900,80,127,111,100,100,0,False
+Chondrite Magitek Sword,550,88,0,3300,7000,80,128,112,100,100,0,False
+Chondrite Magitek Shield,555,89,0,3400,7100,80,129,113,100,100,0,False
+Chondrite Saw,560,90,0,3500,7200,80,130,115,90,80,0,False
+Dark Rye Flour,517,81,0,1000,5200,40,121,105,100,100,0,False
+Perilla Oil,520,82,0,1150,5700,40,122,106,100,100,0,False
+Garlean Cheese,530,84,0,1450,6600,40,124,108,100,100,0,False
+Ironwood Lumber,540,86,0,1550,6800,40,126,110,100,100,0,False
+Integral Lumber,550,88,0,1650,7000,40,128,112,100,100,0,False
+Grade 5 Strength Alkahest,525,83,0,1300,6200,40,123,107,100,100,0,False
+Enchanted Manganese Ink,545,87,0,1600,6900,40,127,111,100,100,0,False
+Moon Gel,535,85,0,1500,6700,40,125,109,100,100,0,False
+Glamour Prism,15,15,0,27,360,70,50,30,100,100,0,False
+Gallant Armor Augmentation,90,50,3,210,2750,40,50,30,80,70,0,False
+Augmented Heavy Wolfram Cuirass,90,50,3,420,2062,80,50,30,80,70,0,False
+Bladder Lining Component,1,1,0,28,75,60,50,30,100,100,0,False
+Larboard Hull Component,1,1,0,9,100,40,50,30,100,100,0,False
+Rigging Component,3,3,0,36,60,60,50,30,100,100,0,False
+Deck Component,3,3,0,30,90,60,50,30,100,100,0,False
+Engine Casing Component,3,3,0,10,120,40,50,30,100,100,0,False
+Starboard Wing Component,10,10,0,22,250,40,50,30,100,100,0,False
+Lamp Component,15,15,0,27,360,40,50,30,100,100,0,False
+Disposal Unit Component,15,15,0,176,180,70,50,30,100,100,0,False
+Spare Tank Component,16,16,0,201,195,70,50,30,100,100,0,False
+Refabrication Component,16,16,0,31,390,40,50,30,100,100,0,False
+Figurehead Component,18,18,0,214,225,70,50,30,100,100,0,False
+Wootz Ingot,110,50,4,480,2900,80,50,30,80,70,0,False
+Magnificent Mogdelier,160,60,1,660,1400,70,70,50,100,100,0,False
+Sun Mica Grinding Wheel,180,60,2,740,2900,70,70,50,80,70,0,False
+Clockwork Barrow,160,60,1,330,2800,70,70,50,100,100,0,False
+Savage Gordian Bureau,180,60,2,740,1450,70,70,50,80,70,0,False
+Thavnairian Bolero,160,60,1,660,2800,70,70,50,100,100,0,False
+Titanium Alloy Ingot,160,60,1,330,2800,35,70,50,100,100,0,False
+Camphorwood Necklace of Fending,210,60,3,880,3300,70,70,50,80,70,0,False
+Faust Striking Dummy,210,60,3,880,1650,70,70,50,80,70,0,False
+Sephirotic Barding,180,60,2,370,2900,70,70,50,80,70,0,False
+Grade 3 Strength Dissolvent,250,60,4,1000,3800,70,70,50,80,70,0,False
+Fake Kupo Nut,50,50,0,90,2000,40,50,30,100,100,0,False
+Horn Component,50,50,0,259,500,80,50,30,100,100,0,False
+Moogle Tool Component,50,50,0,345,400,80,50,30,100,100,0,False
+Statue Supplies,50,50,0,216,740,80,50,30,100,100,0,False
+Tablet Supplies,50,50,0,460,500,80,50,30,100,100,0,False
+Repurposed Construction Component,50,50,0,324,1000,80,50,30,100,100,0,False
+Foundation Component,50,50,0,432,800,80,50,30,100,100,0,False
+Basket Component,50,50,0,270,1500,80,50,30,100,100,0,False
+Aetheric Shielding,50,50,0,576,1000,80,50,30,100,100,0,False
+Nidhogg Miniature,220,60,3,900,1695,70,70,50,80,70,0,False
+Horde Barding,220,60,3,450,3390,70,70,50,80,70,0,False
+Ironworks Cap of Gathering,220,60,3,900,3390,70,70,50,80,70,0,False
+Tier 4 Aquarium,250,60,4,1000,1900,70,70,50,80,70,0,False
+Sophic Barding,250,60,4,500,3800,70,70,50,80,70,0,False
+Near Eastern Antique Component,142,57,0,230,996,60,67,47,100,100,0,False
+Near Eastern Antique,142,57,0,460,1992,60,67,47,100,100,0,False
+Coerthan Souvenir Component,145,58,0,250,1024,60,68,48,100,100,0,False
+Coerthan Souvenir,145,58,0,500,2048,60,68,48,100,100,0,False
+Maelstrom Materiel Component,148,59,0,270,1052,60,69,49,100,100,0,False
+Maelstrom Materiel,148,59,0,540,2104,60,69,49,100,100,0,False
+Heartfelt Gift Component,150,60,0,290,1080,60,70,50,100,100,0,False
+Heartfelt Gift,150,60,0,580,2160,60,70,50,100,100,0,False
+Orphanage Donation Component,160,60,1,330,1120,60,70,50,100,100,0,False
+Orphanage Donation,160,60,1,660,2240,60,70,50,100,100,0,False
+Lavish Dressing Case,270,63,0,511,1633,80,83,64,100,100,0,False
+Stylish Pipe Box,276,65,0,581,1732,80,85,66,100,100,0,False
+Ornate Partition,285,68,0,686,1881,80,88,68,100,100,0,False
+Teahouse Bench,290,70,0,756,1980,80,90,70,100,100,0,False
+Revelation Orchestrion Roll,300,70,1,1140,2100,70,90,70,100,100,0,False
+Reveler's Barding,300,70,1,570,4200,70,90,70,100,100,0,False
+Chromite Sword,320,70,2,1200,4800,70,90,70,80,70,0,False
+Ala Mhigan Burdet,320,70,2,720,4320,70,90,70,80,70,0,False
+Flying Chair,320,70,2,1200,2400,70,90,70,80,70,0,False
+Far Eastern Antique Component,160,60,1,297,1092,60,70,50,100,100,0,False
+Far Eastern Antique,160,60,1,594,2212,60,70,50,100,100,0,False
+Gold Saucer Consolation Prize Component,255,61,0,315,1116,60,81,58,100,100,0,False
+Gold Saucer Consolation Prize,255,61,0,630,2232,60,81,58,100,100,0,False
+M Tribe Sundry Component,265,62,0,340,1152,60,82,61,100,100,0,False
+M Tribe Sundries,265,62,0,680,2304,60,82,61,100,100,0,False
+Resistance Materiel Component,270,63,0,365,1188,60,83,64,100,100,0,False
+Resistance Materiel,270,63,0,730,2376,60,83,64,100,100,0,False
+Nightsteel Sword,350,70,3,1350,5200,70,90,70,80,70,0,False
+Nightsteel Ingot,350,70,3,1147,3900,35,90,70,80,70,0,False
+Answer on High Orchestrion Roll,350,70,3,1350,2600,70,90,70,80,70,0,False
+Altar Components,148,59,0,810,1972,70,69,49,100,100,0,False
+Mikoshi Frippery,150,60,0,1044,1350,70,70,50,100,100,0,False
+Dzo Shear Components,150,60,0,835,675,70,70,50,100,100,0,False
+Confetti-making Tools,150,60,0,290,2700,35,70,50,100,100,0,False
+Generous Gift,150,60,0,870,2025,70,70,50,100,100,0,False
+Effigy Components,150,60,0,696,999,70,70,50,100,100,0,False
+Ritual Implement Components,145,58,0,900,1280,70,68,48,100,100,0,False
+Uchiwa Components,145,58,0,250,2560,35,68,48,100,100,0,False
+Azim Steppe Souvenir Components,148,59,0,972,1315,70,69,49,100,100,0,False
+Mol Tea Ceremony Paraphernalia,148,59,0,270,2630,35,69,49,100,100,0,False
+Substitute Offering,148,59,0,777,657,70,69,49,100,100,0,False
+Cloud Pearl Components,273,64,0,390,1224,60,84,65,100,100,0,False
+Cloud Pearl,273,64,0,780,2448,60,84,65,100,100,0,False
+Rakshasa Blade,380,70,4,1500,6100,70,90,70,80,70,0,False
+Chigusa Ingot,380,70,4,1275,4575,35,90,70,80,70,0,False
+Sunrise Orchestrion Roll,380,70,4,1500,3050,70,90,70,80,70,0,False
+Ishgardian Culinary Materials,279,66,0,440,1296,60,86,66,100,100,0,False
+Ishgardian Culinary Essentials,279,66,0,880,2592,60,86,66,100,100,0,False
+Signature Buuz Cookware Materials,282,67,0,465,1332,60,87,68,100,100,0,False
+Signature Buuz Cookware,282,67,0,930,2664,60,87,68,100,100,0,False
+Arkhi Brewing Vat Materials,285,68,0,490,1368,60,88,68,100,100,0,False
+Arkhi Brewing Set,285,68,0,980,2736,60,88,68,100,100,0,False
+Sandalwood Lumber,450,80,2,1640,6320,35,110,90,80,70,0,False
+Grade 2 Tincture of Strength,450,80,2,2050,7900,70,110,90,80,70,0,False
+Magicked Bed,440,80,1,1900,3000,70,110,90,100,100,0,False
+Hooded Fireglass Leather Vest,440,80,1,1900,6000,70,110,90,100,100,0,False
+Metal Worm Jar,400,73,0,903,2145,80,103,83,100,100,0,False
+Metal Trident,406,75,0,1001,2255,80,105,85,100,100,0,False
+Nullifying Neckpiece,415,78,0,1148,2420,80,108,88,100,100,0,False
+Enchanting Ring,430,80,0,1246,2530,80,110,90,100,100,0,False
+Flyer Printing Set,290,70,0,756,2880,60,90,70,100,100,0,False
+Kholusian Cuisine Set,300,70,1,1140,2940,60,90,70,100,100,0,False
+Honeybee Trappings,390,71,0,1195,3010,60,101,81,100,100,0,False
+Airship Fittings,395,72,0,1220,3040,60,102,82,100,100,0,False
+Beehive Souvenir,400,73,0,1290,3120,60,103,83,100,100,0,False
+Skybuilders' Plywood,20,20,0,74,1198,60,50,30,100,100,0,False
+Skybuilders' Wain,40,40,0,207,3500,60,50,30,100,100,0,False
+Skybuilders' Barrel,150,60,0,580,6480,60,70,50,100,100,0,False
+Skybuilders' Pedestal,290,70,0,1080,9900,60,90,70,100,100,0,False
+Skybuilders' Bed,430,80,0,1780,11960,60,110,90,100,100,0,False
+Hades Trophy,450,80,2,2050,3950,70,110,90,80,70,0,False
+Grade 2 Skybuilders' Crate,40,40,0,138,3500,60,50,30,100,100,0,False
+Grade 2 Artisanal Skybuilders' Wardrobe,481,80,3,3856,12323,60,140,130,100,100,0,True
+Oddly Specific Shaft,450,80,2,1845,7900,70,110,90,80,70,0,False
+Neo-Ishgardian Sword,480,80,3,2800,8500,70,110,90,80,70,0,False
+Cobalt Alloy Ingot,480,80,3,2240,6375,35,110,90,80,70,0,False
+Handpicked Culinary Essentials,403,74,0,1360,3200,60,104,84,100,100,0,False
+Printing Essentials,406,75,0,1430,3280,60,105,85,100,100,0,False
+True Barding of Light,480,80,3,2800,4250,70,110,90,80,70,0,False
+Workshop Supplies,290,70,0,1080,3600,70,90,70,100,100,0,False
+Brewery Supplies,290,70,0,1134,3600,70,90,70,100,100,0,False
+Crystal Cannon Supplies,290,70,0,1188,3600,70,90,70,100,100,0,False
+Workshop Expansion Supplies,290,70,0,1242,5040,70,90,70,100,100,0,False
+Automaton Worker Supplies,290,70,0,1242,5220,70,90,70,100,100,0,False
+Armament Repair Kit,290,70,0,1026,3600,35,90,70,100,100,0,False
+Engine Component,290,70,0,1080,4860,70,90,70,100,100,0,False
+Oddly Specific Cedar Lumber,460,80,2,1909,8100,70,110,90,80,70,0,False
+Oddly Specific Cedar Plank,480,80,3,1960,8500,70,110,90,80,70,0,False
+Grade 3 Artisanal Skybuilders' Goldsmithing Bench,511,80,4,4672,15656,50,140,130,100,100,0,True
+Grade 4 Artisanal Skybuilders' Icebox,513,80,4,5059,15474,55,140,130,100,100,0,True
+Exarchic Sword,510,80,4,3600,9500,70,110,90,80,70,0,False
+Silver Beech Lumber,510,80,4,2340,7125,35,110,90,80,70,0,False
+Oddly Delicate Pine Lumber,512,80,4,4220,14618,60,140,130,100,100,0,True
+Resplendent Carpenter's Component A,514,80,4,5077,14321,55,140,130,100,100,0,True
+Resplendent Carpenter's Component B,515,80,4,5095,14854,55,140,130,100,100,0,True
+Resplendent Carpenter's Component C,516,80,5,5470,16156,60,140,130,100,100,0,True
+Art Supplies,412,77,0,1570,3440,60,107,87,100,100,0,False
+Gold Plating,430,80,0,1335,2760,80,110,90,100,100,0,False
+Gold Cog,525,83,0,1950,3720,80,123,107,100,100,0,False
+Gold Motor Component,535,85,0,2250,4020,80,125,109,100,100,0,False
+Gold Mechanical Voice Box,550,88,0,2475,4200,80,128,112,100,100,0,False
+Gold Connector,560,90,0,2625,4320,80,130,115,90,80,0,False
+Classical Longsword,580,90,2,3900,10920,70,130,115,80,70,0,False
+Lunar Adamantite Ingot,580,90,2,2925,7800,35,130,115,80,70,0,False
+Trophy of Eternal Darkness,570,90,1,3700,7400,80,130,115,90,80,0,False
+Aetheroconductive Quill,430,80,0,1780,3680,60,110,90,100,100,0,False
+Aetheroconductive Focus,440,80,1,1900,3960,60,110,90,100,100,0,False
+Luncheon Coffer,517,81,0,2000,4160,60,121,105,100,100,0,False
+Aetheroconductive Mammet,520,82,0,2300,4560,60,122,106,100,100,0,False
+School Supplies,525,83,0,2600,4960,60,123,107,100,100,0,False
+Pactmaker's Halfheart Saw,590,90,2,4300,12800,70,130,115,80,70,0,False
+Eblan Danburite,590,90,2,3010,8400,35,130,115,80,70,0,False
+Rinascita Sword,610,90,3,5060,12628,70,130,115,80,70,0,False
+Rutilated Quartz,610,90,3,3696,8200,35,130,115,80,70,0,False
+Water Otter Fountain Lumber,611,90,3,7480,13620,60,180,180,100,100,13500,True
+Island Prism,590,90,2,4300,8000,70,130,115,80,70,0,False
+Musicking Station Component,430,80,0,1335,4600,35,110,90,100,100,0,False
+Machining Supplies,430,80,0,1780,4600,70,110,90,100,100,0,False
+Painting Supplies,430,80,0,1780,6900,70,110,90,100,100,0,False
+Radio Equipment,430,80,0,1780,7360,70,110,90,100,100,0,False
+Audio Recording Component,430,80,0,1780,6440,70,110,90,100,100,0,False
+Traditional Voeburtite Handicraft,530,84,0,2900,5280,60,124,108,100,100,0,False
+Lovely Box of Pretty Things,535,85,0,3000,5360,60,125,109,100,100,0,False
+Connoisseur's Chair,570,90,1,3700,9028,60,130,115,90,80,0,False
+Connoisseur's Marimba,580,90,2,3900,11154,60,130,115,80,70,0,False
+Indagator's Saw,620,90,3,5720,12900,70,130,115,80,70,0,False
+Zoisite,620,90,3,3696,8600,35,130,115,80,70,0,False
+Smaller Water Otter Fountain,620,90,3,4400,8600,70,130,115,80,70,0,False
+Bantam Train,610,90,3,4400,8200,70,130,115,80,70,0,False
+Smaller Water Otter Fountain Lumber,621,90,3,7920,17240,60,180,180,100,100,17000,True
+Diadochos Sword,640,90,4,6600,14040,70,130,115,80,70,0,False
+Dark Cherry Lumber,640,90,4,4488,9090,35,130,115,80,70,0,False
+Connoisseur's Picture Frame,620,90,3,4620,12040,60,130,115,80,70,0,False
+Connoisseur's Bookshelf,625,90,3,5280,13050,60,130,115,80,70,0,False
+Uncharted Course Lumber,641,90,4,8800,18040,60,180,180,100,100,18000,True
+Researcher's Relaxation Kit,545,87,0,3200,5520,60,127,111,100,100,0,False
+Connoisseur's Bamboo Fence,642,90,4,6600,15368,60,180,180,100,100,0,True
+Connoisseur's Shishi-odoshi,643,90,4,7040,16308,60,180,180,100,100,0,True
+Aetherial Arbor Lumber,644,90,5,9240,20066,70,180,180,100,100,20000,True
+Martial Artist's Vest,640,90,4,4400,9000,70,130,115,80,70,0,False
