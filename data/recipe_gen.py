@@ -42,7 +42,7 @@ with open("Recipe.csv", newline="") as f:
         if idtup in registered: continue
         else: registered.add(idtup)
         recipes.append({
-            "name": items[int(row[r"Item{Result}"])],
+            "name": f"rlvl{rlvl} {'/'.join(str(i) for i in idtup[1:4])}",
             "rlvl": rlvl,
             "lvl": rlt[rlvl]["lvl"],
             "stars": rlt[rlvl]["stars"],
@@ -56,6 +56,8 @@ with open("Recipe.csv", newline="") as f:
             "reqqual": int(row["RequiredQuality"]),
             "expert": row["IsExpert"] == "True"
         })
+
+recipes.sort(key=lambda x: (x["rlvl"], x["prog"], x["qual"]))
 
 with open("recipes_filt.csv", "w", newline="") as f:
     csvf = csv.DictWriter(f, recipes[0].keys())
