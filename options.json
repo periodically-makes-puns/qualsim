@@ -1,6 +1,6 @@
 {
     "mode": "recipe",
-    "incache": "",
+    "incache": "cache35.bcode",
     "outcache": "cache35.bcode",
     "recipe_file": "recipe35.json",
     "check_time": true,

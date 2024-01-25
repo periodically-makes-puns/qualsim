@@ -58,7 +58,7 @@ impl fmt::Display for State {
 
 #[derive(Serialize, Deserialize)]
 pub struct DPCache {
-    cache: HashMap<u64, u64>,
+    cache: Vec<HashMap<u64, u64>>,
     pub hits: u64,
     pub items: u64,
     check_time: bool,
@@ -89,8 +89,12 @@ pub static ACTIONS: [&str; 20] = ["(finished)", "",
 
 impl DPCache {
     pub fn new(max_dur: u8, check_time: bool) -> DPCache {
+        let mut caches: Vec<HashMap<u64, u64>> = Vec::new();
+        for _ in 0..120 { 
+            caches.push(HashMap::new());
+        }
         DPCache {
-            cache: HashMap::new(),
+            cache: caches,
             hits: 0,
             items: 0,
             check_time,
@@ -98,22 +102,31 @@ impl DPCache {
         }
     }
 
-    pub fn get(&self, index: u64) -> Option<&u64> {
-        self.cache.get(&index)
+    pub fn get(&self, time: u8, index: u64) -> Option<&u64> {
+        self.cache[if self.check_time {time as usize} else {0}].get(&index)
     }
 
-    pub fn insert(&mut self, index: u64, value: u64) -> Option<u64> {
-        self.cache.insert(index, value)
+    pub fn get_state(&self, state: &State) -> Option<&u64> {
+        self.cache[if self.check_time {state.time as usize} else {0}].get(&state.index(false))
     }
+
+    pub fn insert(&mut self, time: u8, index: u64, value: u64) -> Option<u64> {
+        self.cache[if self.check_time {time as usize} else {0}].insert(index, value)
+    }
+
+    pub fn insert_state(&mut self, state: &State, value: u64) -> Option<u64> {
+        self.cache[if self.check_time {state.time as usize} else {0}].insert(state.index(false), value)
+    }
+
 
     pub fn check(&self, state: &State) -> Option<u64> {
-        self.get(state.index(self.check_time)).and_then(|x| Some(*x))
+        self.get_state(state).and_then(|x| Some(*x))
     }
 
     pub fn query(&mut self, state: &State) -> u64 {
         let index = state.index(self.check_time);
         self.hits += 1;
-        match self.get(index) {
+        match self.get_state(state) {
             Some(ret) => {return *ret;}
             None => {self.hits -= 1;}
         }
@@ -191,7 +204,7 @@ impl DPCache {
                 heart_and_soul: *heart_and_soul
             };
             let qual = apply_igs(UNIT, *innovation, *great_strides, *inner_quiet)
-                + apply_igs(UNIT * 5 / 4, *innovation - 1, 0, min(*inner_quiet + 1, 10));
+                + apply_igs(UNIT * 5 / 4, max(*innovation, 1) - 1, 0, min(*inner_quiet + 1, 10));
             quality_results[4] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 4, &new_state, self.check_time);
         }
         // Advanced Combo
@@ -208,8 +221,8 @@ impl DPCache {
                 heart_and_soul: *heart_and_soul
             };
             let qual = apply_igs(UNIT, *innovation, *great_strides, *inner_quiet)
-                + apply_igs(UNIT * 5 / 4, innovation - 1, 0, min(inner_quiet + 1, 10))
-                + apply_igs(UNIT * 3 / 2, innovation - 2, 0, min(inner_quiet + 2, 10));
+                + apply_igs(UNIT * 5 / 4, max(*innovation, 1) - 1,  0, min(inner_quiet + 1, 10))
+                + apply_igs(UNIT * 3 / 2, max(*innovation, 2) - 2, 0, min(inner_quiet + 2, 10));
             quality_results[5] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 5, &new_state, self.check_time);
         }
         // Focused Touch
@@ -250,7 +263,7 @@ impl DPCache {
                 time: if self.check_time {time - 3} else {0}, 
                 inner_quiet: min(*inner_quiet + 2, 10), 
                 cp: cp - 40,
-                durability: durability - 4 + (if *waste_not > 0 {2} else {0}) + min(*manipulation, 1),
+                durability: durability + (if *waste_not > 0 {2} else {0}) + min(*manipulation, 1) - 4,
                 manipulation: max(*manipulation, 1) - 1,
                 waste_not: max(*waste_not, 1) - 1,
                 innovation: max(*innovation, 1) - 1,
@@ -387,7 +400,7 @@ impl DPCache {
                 time: if self.check_time {time - 3} else {0}, 
                 inner_quiet: 0, 
                 cp: cp - 24,
-                durability: *durability - 2 + min(*waste_not, 1) + min(*manipulation, 1),
+                durability: *durability + min(*waste_not, 1) + min(*manipulation, 1) - 2,
                 manipulation: max(*manipulation, 1) - 1,
                 waste_not: max(*waste_not, 1) - 1,
                 innovation: max(*innovation, 1) - 1,
@@ -414,8 +427,12 @@ impl DPCache {
             quality_results[18] = pack_method((self.query(&new_state) >> 48) as u16 + qual, 18, &new_state, self.check_time);
         }
         let ret = *quality_results.iter().max().unwrap();
-        self.insert(index, ret);
+        self.insert_state(state, ret);
         ret
+    }
+
+    pub fn get_time(ind: u64) -> u8 {
+        (ind >> 33) as u8
     }
 
     pub fn print_backtrace(&self, state: &State) {
@@ -426,7 +443,7 @@ impl DPCache {
         println!("TOTAL: {:.4}", qual as f64 / 400.0);
         while method > 0 {
             assert!(method < 19, "invalid method");
-            prev = match self.get(last) {None => 0, Some(t) => *t};
+            prev = match self.get(Self::get_time(last), last & ((1 << 33) - 1)) {None => 0, Some(t) => *t};
             qual = (prev >> 48) as u16;
             println!("{:02} {:20} {:.4} {}", method, 
                 ACTIONS[method as usize + 1], 
@@ -442,7 +459,7 @@ impl DPCache {
         let (_, mut method, mut last) = unpack_method(prev);
         while method > 0 {
             assert!(method < 19, "invalid method");
-            prev = match self.get(last) {None => 0, Some(t) => *t};
+            prev = match self.get(Self::get_time(last), last & ((1 << 33) - 1)) {None => 0, Some(t) => *t};
             match method {
                 1 => {println!("/ac \"Basic Touch\" <wait.3>");},
                 2 => {println!("/ac \"Standard Touch\" <wait.3>");},
@@ -510,7 +527,7 @@ impl DPCache {
         while method > 0 {
             assert!(method < 19, "invalid method");
             prev = next;
-            curr = match self.get(next) {None => 0, Some(t) => *t};
+            curr = match self.get(Self::get_time(next), next & ((1 << 33) - 1)) {None => 0, Some(t) => *t};
             (_, method, next) = unpack_method(curr);
         }
         return State::unpack(prev);
