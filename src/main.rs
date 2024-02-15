@@ -7,6 +7,7 @@ use std::time::Instant;
 use std::fs::read;
 use std::fs::write;
 use std::fmt;
+use std::process::exit;
 use std::cmp;
 use bincode;
 use prog::Finisher;
@@ -260,6 +261,22 @@ fn export_cache(outfile: &String, cache: &DPCache) -> Result<(), String> {
 }
 
 fn main() {
+    let s = qual::State {
+        time: 90,
+        inner_quiet: 0,
+        cp: 600,
+        durability: 14,
+        manipulation: 0,
+        waste_not: 0,
+        innovation: 0,
+        great_strides: 0,
+        heart_and_soul: false,
+    };
+    let mut c = DPCache::new(14, false);
+
+    c.query(&s);
+    c.print_backtrace(&s);
+    exit(0);
     let mut options = match load_options() {
         Ok(res) => res,
         Err(err) => {
