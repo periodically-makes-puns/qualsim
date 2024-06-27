@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::cmp::{max, min};
 use std::fmt;
 use std::num::{NonZero, NonZeroU64};
-use std::os::raw;
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, Copy)]
@@ -83,12 +82,11 @@ pub fn unpack_method(packed_result: u64) -> (u16, u8, u64) {
     ((packed_result >> 48) as u16, (packed_result >> 40) as u8, packed_result & ((1 << 40) - 1))
 }
 
-pub fn apply_igs(quality: u16, innovation: u8, great_strides: u8, inner_quiet: u8) -> u16 {
-    quality * (10 + inner_quiet as u16) / 20 * (2 + (if innovation > 0 {1} else {0}) + (if great_strides > 0 {2} else {0}))
+pub fn apply_igs(quality: u16, innovation: u8, great_strides: u8, inner_quiet: u8, delay: u8) -> u16 {
+    quality * (10 + inner_quiet as u16) / 20 * (2 + (if innovation > delay {1} else {0}) + (if great_strides > delay {2} else {0}))
 }
 
 pub fn calculate_dur_cost(perstep: u8, steps: u8, delay: u8, wn: u8, manip: u8) -> i8 {
-    if steps == 0 {return 0}
     let wn = max(wn, delay) - delay;
 
     (perstep*steps) as i8 - (min(manip, steps+delay-1) as i8) - (min(wn, steps)*perstep/2) as i8
@@ -101,7 +99,282 @@ pub static ACTION_NAMES: [&str; 23] = ["(finished)", "",
     "Focused Touch", "Prudent Touch", "Preparatory Touch", "Trained Finesse", "Waste Not I", 
     "Waste Not II", "Manipulation", "Master's Mend", "Innovation", "Great Strides", 
     "Observe", "Byregot's", "Precise Touch", "Basic+Refined", "Immaculate Mend", "Trained Perfection"];
+pub struct Action {
+    pub name: &'static str,
+    pub action_id: u8,
+    pub raw_dur_cost: u8,
+    pub step_count: u8,
+    pub delay: u8,
+    pub cp_cost: u16,
+    pub iq_stacks: u8,
+    pub time_cost: u8,
+    pub qual_value: u16,
+    pub scaling: u16,
+    pub modification: fn(&mut State)
+}
 
+pub static ACTIONS: [Action; 20] = [
+    Action {
+        name: "Basic Touch",
+        action_id: 1,
+        raw_dur_cost: 2,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 18,
+        iq_stacks: 1,
+        time_cost: 3,
+        qual_value: UNIT,
+        scaling: 0,
+        modification: |_| {}
+    },
+    Action {
+        name: "Standard Touch",
+        action_id: 2,
+        raw_dur_cost: 2,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 32,
+        iq_stacks: 1,
+        time_cost: 3,
+        qual_value: UNIT * 5 / 4,
+        scaling: 0,
+        modification: |_| {}
+    },
+    Action {
+        name: "Advanced Touch",
+        action_id: 3,
+        raw_dur_cost: 2,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 46,
+        iq_stacks: 1,
+        time_cost: 3,
+        qual_value: UNIT * 3 / 2,
+        scaling: 0,
+        modification: |_| {}
+    },
+    Action {
+        name: "Basic+Standard",
+        action_id: 4,
+        raw_dur_cost: 2,
+        step_count: 2,
+        delay: 0,
+        cp_cost: 36,
+        iq_stacks: 2,
+        time_cost: 6,
+        qual_value: UNIT,
+        scaling: UNIT / 4,
+        modification: |_| {}
+    },
+    Action {
+        name: "Advanced Combo",
+        action_id: 5,
+        raw_dur_cost: 2, 
+        step_count: 3,
+        delay: 0,
+        cp_cost: 54,
+        iq_stacks: 3,
+        time_cost: 9,
+        qual_value: UNIT,
+        scaling: UNIT / 4,
+        modification: |_| {}
+    },
+    Action {
+        name: "Focused Touch",
+        action_id: 6,
+        raw_dur_cost: 2, 
+        step_count: 1,
+        delay: 1,
+        cp_cost: 25,
+        iq_stacks: 1,
+        time_cost: 6,
+        qual_value: UNIT * 3 / 2,
+        scaling: 0,
+        modification: |_| {}
+    },
+    Action { // ! NEEDS TO CHECK NO WASTE NOT
+        name: "Prudent Touch",
+        action_id: 7, 
+        raw_dur_cost: 1,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 25,
+        iq_stacks: 1,
+        time_cost: 3,
+        qual_value: UNIT,
+        scaling: 0,
+        modification: |_| {}
+    },
+    Action {
+        name: "Preparatory Touch",
+        action_id: 8,
+        raw_dur_cost: 4,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 40,
+        iq_stacks: 2,
+        time_cost: 3,
+        qual_value: 2*UNIT,
+        scaling: 0,
+        modification: |_| {}
+    },
+    Action { // ! NEEDS TO CHECK 10 IQ
+        name: "Trained Finesse",
+        action_id: 9,
+        raw_dur_cost: 0,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 32,
+        iq_stacks: 0,
+        time_cost: 3,
+        qual_value: UNIT,
+        scaling: 0,
+        modification: |_| {}
+    },
+    Action {
+        name: "Waste Not I",
+        action_id: 10,
+        raw_dur_cost: 0,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 56,
+        iq_stacks: 0,
+        time_cost: 2,
+        qual_value: 0,
+        scaling: 0,
+        modification: |st| {st.waste_not = 4;}
+    },
+    Action {
+        name: "Waste Not II",
+        action_id: 11,
+        raw_dur_cost: 0,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 98,
+        iq_stacks: 0,
+        time_cost: 2,
+        qual_value: 0,
+        scaling: 0,
+        modification: |st| {st.waste_not = 8;}
+    },
+    Action { // ! NEEDS TO UNDO MANIP TICK
+        name: "Manipulation",
+        action_id: 12,
+        raw_dur_cost: 0,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 96,
+        iq_stacks: 0,
+        time_cost: 2,
+        qual_value: 0,
+        scaling: 0,
+        modification: |st| {st.manipulation = 8;}
+    },
+    Action {
+        name: "Master's Mend",
+        action_id: 13,
+        raw_dur_cost: 0,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 88,
+        iq_stacks: 0,
+        time_cost: 2,
+        qual_value: 0,
+        scaling: 0,
+        modification: |st| {st.durability += 6;}
+    },
+    Action {
+        name: "Innovation",
+        action_id: 14,
+        raw_dur_cost: 0,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 18,
+        iq_stacks: 0,
+        time_cost: 2,
+        qual_value: 0,
+        scaling: 0,
+        modification: |st| {st.innovation = 4;}
+    },
+    Action {
+        name: "Great Strides",
+        action_id: 15,
+        raw_dur_cost: 0,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 32,
+        iq_stacks: 0,
+        time_cost: 2,
+        qual_value: 0,
+        scaling: 0,
+        modification: |st| {st.great_strides = 4;}
+    },
+    Action {
+        name: "Byregot's",
+        action_id: 17,
+        raw_dur_cost: 2,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 24,
+        iq_stacks: 0,
+        time_cost: 3,
+        qual_value: UNIT,
+        scaling: UNIT / 10,
+        modification: |st| {st.inner_quiet = 0;}
+    },
+    Action { // ! CHECK HAS
+        name: "Precise Touch",
+        action_id: 18,
+        raw_dur_cost: 2,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 18,
+        iq_stacks: 2,
+        time_cost: 6,
+        qual_value: UNIT * 3 / 2,
+        scaling: 0,
+        modification: |st: &mut State| {st.heart_and_soul = false;}
+    },
+    Action {
+        name: "Basic+Refined",
+        action_id: 19,
+        raw_dur_cost: 2,
+        step_count: 2,
+        delay: 0,
+        cp_cost: 42,
+        iq_stacks: 3,
+        time_cost: 6,
+        qual_value: UNIT,
+        scaling: 0,
+        modification: |_| {}
+    },
+    Action {
+        name: "Immaculate Mend",
+        action_id: 20,
+        raw_dur_cost: 0,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 112,
+        iq_stacks: 0,
+        time_cost: 2,
+        qual_value: 0,
+        scaling: 0,
+        modification: |st| {st.durability = 24;}
+    },
+    Action {
+        name: "Trained Perfection",
+        action_id: 21,
+        raw_dur_cost: 0,
+        step_count: 1,
+        delay: 0,
+        cp_cost: 0,
+        iq_stacks: 0,
+        time_cost: 2,
+        qual_value: 0,
+        scaling: 0,
+        modification: |st| {if st.trained_perfection == 0 {st.trained_perfection = 1;}}
+    }
+];
 impl DPCache {
     pub fn new(max_dur: u8, check_time: bool) -> DPCache {
         let mut caches: Vec<HashMap<u64, u64>> = Vec::new();
@@ -138,15 +411,56 @@ impl DPCache {
         self.get_state(state).and_then(|x| Some(*x))
     }
 
+    pub fn apply_action(&mut self, state: &State, action: &Action) -> Option<NonZero<u64>> {
+        let State {time, inner_quiet, cp, durability, manipulation, 
+            waste_not, innovation, great_strides, min_durability, trained_perfection, heart_and_soul} = *state;
+        let Action {action_id, raw_dur_cost, step_count, delay, cp_cost, iq_stacks, time_cost, qual_value, scaling, modification, ..} = *action;
+        if action_id == 7 && waste_not > 0 {return None} 
+        if action_id == 9 && inner_quiet != 10 {return None}
+        if action_id == 18 && !heart_and_soul {return None}
+        if action_id == 21 && trained_perfection == 2 {return None}
+        if cp < cp_cost {return None}
+        if self.check_time && time < time_cost {return None}
+        let dur_cost = 
+        if trained_perfection != 1 || action_id == 6 
+            {calculate_dur_cost(raw_dur_cost, step_count, delay, waste_not, manipulation)}
+        else {calculate_dur_cost(raw_dur_cost, step_count-1, delay+1, waste_not, manipulation)};
+        if (durability as i8) < dur_cost {return None}
+        let manip_gain = if manipulation >= step_count + delay && action_id != 12 {1} else {0};
+        let mut new_state = State {
+            time: if self.check_time {time - time_cost} else {0}, 
+            inner_quiet: min(inner_quiet + iq_stacks, 10), 
+            cp: cp - cp_cost,
+            durability: ((durability as i8) + (manip_gain as i8) - dur_cost) as u8,
+            manipulation: max(manipulation, step_count + delay) - step_count - delay,
+            waste_not: max(waste_not, step_count + delay) - step_count - delay,
+            innovation: max(innovation, step_count + delay) - step_count - delay,
+            great_strides: if qual_value > 0 {0} else {max(great_strides, step_count + delay) - step_count - delay},
+            min_durability,
+            trained_perfection: if trained_perfection > 0 {2} else {0},
+            heart_and_soul
+        };
+        modification(&mut new_state);
+        new_state.durability = min(new_state.durability, self.max_dur);
+        let qual: Option<NonZero<u64>> = self.query(&new_state);
+        let qual_value: u16 = if action_id == 17 {UNIT * (10 + 2 * inner_quiet as u16) / 10} else {qual_value};
+        if let Some(qual) = qual {
+            let qual = qual.get();
+            let mut dq = 0u16;
+            for item in 0..step_count {
+                dq += apply_igs(qual_value + scaling * item as u16, innovation, if item == 0 {great_strides} else {0}, min(inner_quiet+item, 10), delay+item);
+            }
+            NonZeroU64::new(pack_method(((qual >> 48) as u16) + dq, action_id, &new_state, self.check_time))
+        } else {None}
+    }
+
     pub fn query(&mut self, state: &State) -> Option<NonZero<u64>> {
-        let index = state.index(self.check_time);
         self.hits += 1;
         match self.get_state(state) {
             Some(ret) => {return NonZeroU64::new(*ret);}
             None => {self.hits -= 1;}
         }
-        let State {time, inner_quiet, cp, durability, manipulation, 
-            waste_not, innovation, great_strides, min_durability, trained_perfection, heart_and_soul} = *state;
+        let State {time, cp, durability,min_durability, ..} = *state;
         if cp < 7 || (time < 2 && self.check_time) { 
             return if durability < min_durability {None} else {NonZeroU64::new(1)}; 
         }
@@ -155,597 +469,9 @@ impl DPCache {
         if self.items % 1000000 == 0 {
             println!("Items: {}", self.items);
         }
-        let mut quality_results = [NonZeroU64::new(index); 23];
         // instantiate with current statenum to preserve information about remaining resources
         // Basic
-        let action_id: u8 = 1;
-        let raw_dur_cost = 2;
-        let step_count = 1;
-        let delay = 0;
-        let cp_cost = 18;
-        let iq_stacks = 1;
-        let time_cost = 3;
-        let qual_value = UNIT;
-        let scaling = UNIT / 4;
-        let dur_cost = if trained_perfection == 1 {calculate_dur_cost(raw_dur_cost, step_count-delay+1, delay+1, waste_not, manipulation)} 
-            else {calculate_dur_cost(raw_dur_cost, step_count-delay, delay, waste_not, manipulation)};
-        if durability as i8 >= dur_cost && cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let adjusted_cost = if trained_perfection == 1 {0} else {raw_dur_cost - min(waste_not, raw_dur_cost / 2)};
-            let manip_gain = if manipulation >= step_count + delay {1} else {0};
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet: min(inner_quiet + iq_stacks, 10), 
-                cp: cp - cp_cost,
-                durability: min(durability + manip_gain - adjusted_cost, self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: 0,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let qual = apply_igs(qual_value, innovation, great_strides, inner_quiet);
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16 + qual, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        // Standard
-        let action_id: u8 = 2;
-        let raw_dur_cost = 2;
-        let step_count = 1;
-        let cp_cost = 32;
-        let iq_stacks = 1;
-        let time_cost = 3;
-        let qual_value = UNIT * 5 / 4;
-        let dur_cost = if trained_perfection == 1 {0} 
-            else {raw_dur_cost - min(manipulation, step_count-1) - min(waste_not, raw_dur_cost / 2)};
-        if durability >= dur_cost && cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let adjusted_cost = if trained_perfection == 1 {0} else {raw_dur_cost - min(waste_not, raw_dur_cost / 2)};
-            let manip_gain = min(manipulation, step_count);
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet: min(inner_quiet + iq_stacks, 10), 
-                cp: cp - cp_cost,
-                durability: min(durability + manip_gain - adjusted_cost, self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: 0,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let qual = apply_igs(qual_value, innovation, great_strides, inner_quiet);
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16 + qual, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        // Advanced
-        let action_id: u8 = 3;
-        let raw_dur_cost = 2;
-        let step_count = 1;
-        let cp_cost = 46;
-        let iq_stacks = 1;
-        let time_cost = 3;
-        let qual_value = UNIT * 3 / 2;
-        let dur_cost = if trained_perfection == 1 {0} 
-            else {raw_dur_cost - min(manipulation, step_count-1) - min(waste_not, raw_dur_cost / 2)};
-        if durability >= dur_cost && cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let adjusted_cost = if trained_perfection == 1 {0} else {raw_dur_cost - min(waste_not, raw_dur_cost / 2)};
-            let manip_gain = min(manipulation, step_count);
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet: min(inner_quiet + iq_stacks, 10), 
-                cp: cp - cp_cost,
-                durability: min(durability + manip_gain - adjusted_cost, self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: 0,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let qual = apply_igs(qual_value, innovation, great_strides, inner_quiet);
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16 + qual, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        // Standard Combo
-        let action_id: u8 = 4;
-        let raw_dur_cost = 4;
-        let step_count = 2;
-        let cp_cost = 36;
-        let iq_stacks = 2;
-        let time_cost = 6;
-        let qual_value = UNIT;
-        let dur_cost = if trained_perfection == 1 {raw_dur_cost} 
-            else {raw_dur_cost - min(manipulation, step_count-1) - min(waste_not, raw_dur_cost / 2)};
-        if durability >= dur_cost && cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let adjusted_cost = if trained_perfection == 1 {0} else {raw_dur_cost - min(waste_not, raw_dur_cost / 2)};
-            let manip_gain = min(manipulation, step_count);
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet: min(inner_quiet + iq_stacks, 10), 
-                cp: cp - cp_cost,
-                durability: min(durability + manip_gain - adjusted_cost, self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: 0,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let qual = apply_igs(qual_value, innovation, great_strides, inner_quiet)
-                + apply_igs(UNIT * 5 / 4, max(innovation, 1) - 1, 0, min(inner_quiet+1, 10));
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16 + qual, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        // Advanced Combo
-        let action_id: u8 = 5;
-        let raw_dur_cost = 6;
-        let step_count = 3;
-        let cp_cost = 54;
-        let iq_stacks = 3;
-        let time_cost = 9;
-        let qual_value = UNIT;
-        let dur_cost = if trained_perfection == 1 {0} 
-            else {raw_dur_cost - min(manipulation, step_count-1) - min(waste_not, raw_dur_cost / 2)};
-        if durability >= dur_cost && cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let adjusted_cost = if trained_perfection == 1 {0} else {raw_dur_cost - min(waste_not, raw_dur_cost / 2)};
-            let manip_gain = min(manipulation, step_count);
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet: min(inner_quiet + iq_stacks, 10), 
-                cp: cp - cp_cost,
-                durability: min(durability + manip_gain - adjusted_cost, self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: 0,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let qual = apply_igs(qual_value, innovation, great_strides, inner_quiet)
-                + apply_igs(UNIT * 5 / 4, max(innovation, 1) - 1, 0, min(inner_quiet + 1, 10))
-                + apply_igs(UNIT * 3 / 2, max(innovation, 2) - 2, 0, min(inner_quiet + 2, 10));
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16 + qual, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        // Focused Touch
-        let action_id: u8 = 6;
-        let raw_dur_cost = 2;
-        let step_count = 2;
-        let cp_cost = 25;
-        let iq_stacks = 1;
-        let time_cost = 6;
-        let qual_value = UNIT * 3 / 2;
-        let dur_cost = if trained_perfection == 1 {0} 
-            else {raw_dur_cost - min(manipulation, step_count-1) - min(waste_not, raw_dur_cost / 2)};
-        if durability >= dur_cost && cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let adjusted_cost = if trained_perfection == 1 {0} else {raw_dur_cost - min(waste_not, raw_dur_cost / 2)};
-            let manip_gain = min(manipulation, step_count);
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet: min(inner_quiet + iq_stacks, 10), 
-                cp: cp - cp_cost,
-                durability: min(durability + manip_gain - adjusted_cost, self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: 0,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let qual = apply_igs(qual_value, max(innovation, 1)-1, max(great_strides, 1) - 1, inner_quiet);
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16 + qual, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        // Prudent Touch
-        let action_id: u8 = 7;
-        let raw_dur_cost = 1;
-        let step_count = 1;
-        let cp_cost = 25;
-        let iq_stacks = 1;
-        let time_cost = 3;
-        let qual_value = UNIT;
-        let dur_cost = if trained_perfection == 1 {0} 
-            else {raw_dur_cost - min(manipulation, step_count-1) - min(waste_not, raw_dur_cost / 2)};
-        if durability >= dur_cost && cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let adjusted_cost = if trained_perfection == 1 {0} else {raw_dur_cost - min(waste_not, raw_dur_cost / 2)};
-            let manip_gain = min(manipulation, step_count);
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet: min(inner_quiet + iq_stacks, 10), 
-                cp: cp - cp_cost,
-                durability: min(durability + manip_gain - adjusted_cost, self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: 0,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let qual = apply_igs(qual_value, innovation, great_strides, inner_quiet);
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16 + qual, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        // Prepratory Touch
-        let action_id: u8 = 8;
-        let raw_dur_cost = 4;
-        let step_count = 1;
-        let cp_cost: u16 = 40;
-        let iq_stacks = 2;
-        let time_cost = 3;
-        let qual_value = UNIT * 2;
-        let dur_cost = if trained_perfection == 1 {0} 
-            else {raw_dur_cost - min(manipulation, step_count-1) - min(waste_not, raw_dur_cost / 2)};
-        if durability >= dur_cost && cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let adjusted_cost = if trained_perfection == 1 {0} else {raw_dur_cost - min(waste_not, raw_dur_cost / 2)};
-            let manip_gain = min(manipulation, step_count);
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet: min(inner_quiet + iq_stacks, 10), 
-                cp: cp - cp_cost,
-                durability: min(durability + manip_gain - adjusted_cost, self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: 0,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let qual = apply_igs(qual_value, innovation, great_strides, inner_quiet);
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16 + qual, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        // Trained Finesse
-        let action_id: u8 = 9;
-        let step_count = 1;
-        let cp_cost = 32;
-        let time_cost = 3;
-        let qual_value = UNIT;
-        if cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let adjusted_cost = 0;
-            let manip_gain = min(manipulation, step_count);
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet,
-                cp: cp - cp_cost,
-                durability: min(durability + manip_gain - adjusted_cost, self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: 0,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let qual = apply_igs(qual_value, innovation, great_strides, inner_quiet);
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16 + qual, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        // Waste Not 1
-        let action_id: u8 = 10;
-        let step_count = 1;
-        let cp_cost = 56;
-        let time_cost = 2;
-        if cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet, 
-                cp: cp - cp_cost,
-                durability: min(durability + min(manipulation, step_count), self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: 4,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: max(great_strides, step_count) - step_count,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        // Waste Not 2
-        let action_id: u8 = 11;
-        let step_count = 1;
-        let cp_cost = 98;
-        let time_cost = 2;
-        if cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet, 
-                cp: cp - cp_cost,
-                durability: min(durability + min(manipulation, step_count), self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: 8,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: max(great_strides, step_count) - step_count,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        // Manipulation
-        let action_id: u8 = 12;
-        let step_count = 1;
-        let cp_cost = 96;
-        let time_cost = 2;
-        if cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet, 
-                cp: cp - cp_cost,
-                durability,
-                manipulation: 8,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: max(great_strides, step_count) - step_count,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        // Master's Mend
-        let action_id: u8 = 13;
-        let step_count = 1;
-        let cp_cost = 88;
-        let time_cost = 2;
-        if cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet, 
-                cp: cp - cp_cost,
-                durability: min(durability + 6 + min(manipulation, step_count), self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: max(great_strides, step_count) - step_count,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        // Innovation
-        let action_id: u8 = 14;
-        let step_count = 1;
-        let cp_cost: u16 = 18;
-        let time_cost = 2;
-        if cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet, 
-                cp: cp - cp_cost,
-                durability: min(durability + min(manipulation, step_count), self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: 4,
-                great_strides: max(great_strides, step_count) - step_count,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        // Great Strides
-        let action_id: u8 = 15;
-        let step_count = 1;
-        let cp_cost = 32;
-        let time_cost = 2;
-        if cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet, 
-                cp: cp - cp_cost,
-                durability: min(durability + min(manipulation, step_count), self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: 3,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        /* Observe
-        if *cp >= 7 && (!self.check_time || *time >= 2) {
-            let new_state = State {
-                time: if self.check_time {time - 2} else {0}, 
-                iq: *iq, 
-                cp: cp - 7,
-                dur: *dur + min(*manip, 1),
-                manip: max(manip - 1, 0),
-                wn: max(wn - 1, 0),
-                inno: max(inno - 1, 0),
-                gs: max(gs - 1, 0),
-                has: *has
-            };
-            res[16] = combine_method((self.query(&new_state) >> 48) as u16, 16, &new_state, self.check_time);
-        }*/
-        // Byregot's Blessing
-        let action_id: u8 = 17;
-        let raw_dur_cost = 2;
-        let step_count = 1;
-        let cp_cost: u16 = 24;
-        let time_cost = 3;
-        let qual_value = UNIT * (10 + 2 * inner_quiet as u16) / 10;
-        let dur_cost = if trained_perfection == 1 {0} 
-            else {raw_dur_cost - min(manipulation, step_count-1) - min(waste_not, raw_dur_cost / 2)};
-        if durability >= dur_cost && cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let adjusted_cost = if trained_perfection == 1 {0} else {raw_dur_cost - min(waste_not, raw_dur_cost / 2)};
-            let manip_gain = min(manipulation, step_count);
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet: 0, 
-                cp: cp - cp_cost,
-                durability: min(durability + manip_gain - adjusted_cost, self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: 0,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let qual = apply_igs(qual_value, innovation, great_strides, inner_quiet);
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16 + qual, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        // Precise Touch
-        let action_id: u8 = 18;
-        let raw_dur_cost = 2;
-        let step_count = 1;
-        let cp_cost = 18;
-        let iq_stacks = 2;
-        let time_cost = 3;
-        let qual_value = UNIT * 2;
-        let dur_cost = if trained_perfection == 1 {0} 
-            else {raw_dur_cost - min(manipulation, step_count-1) - min(waste_not, raw_dur_cost / 2)};
-        if durability >= dur_cost && cp >= cp_cost && heart_and_soul && (!self.check_time || time >= time_cost) {
-            let adjusted_cost = if trained_perfection == 1 {0} else {raw_dur_cost - min(waste_not, raw_dur_cost / 2)};
-            let manip_gain = min(manipulation, step_count);
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet: min(inner_quiet + iq_stacks, 10), 
-                cp: cp - cp_cost,
-                durability: min(durability + manip_gain - adjusted_cost, self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: 0,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul: false
-            };
-            let qual = apply_igs(qual_value, innovation, great_strides, inner_quiet);
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16 + qual, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        let action_id: u8 = 19;
-        let raw_dur_cost = 4;
-        let step_count = 2;
-        let cp_cost = 42;
-        let iq_stacks = 3;
-        let time_cost = 6;
-        let qual_value = UNIT;
-        let dur_cost = if trained_perfection == 1 {0} 
-            else {raw_dur_cost - min(manipulation, step_count-1) - min(waste_not, raw_dur_cost / 2)};
-        if durability >= dur_cost && cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let adjusted_cost = if trained_perfection == 1 {0} else {raw_dur_cost - min(waste_not, raw_dur_cost / 2)};
-            let manip_gain = min(manipulation, step_count);
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet: min(inner_quiet + iq_stacks, 10), 
-                cp: cp - cp_cost,
-                durability: min(durability + manip_gain - adjusted_cost, self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: 0,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let qual = apply_igs(qual_value, innovation, great_strides, inner_quiet)
-                + apply_igs(UNIT, max(innovation, 1) - 1, 0, min(inner_quiet+1, 10));
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16 + qual, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        let action_id: u8 = 20;
-        let step_count = 1;
-        let cp_cost = 112;
-        let time_cost = 2;
-        if cp >= cp_cost && (!self.check_time || time >= time_cost) {
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet, 
-                cp: cp - cp_cost,
-                durability: self.max_dur,
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: max(great_strides, step_count) - step_count,
-                min_durability,
-                trained_perfection: if trained_perfection > 0 {2} else {0},
-                heart_and_soul
-            };
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        let action_id: u8 = 21;
-        let step_count = 1;
-        let time_cost = 2;
-        if trained_perfection == 0 && (!self.check_time || time >= time_cost) {
-            let new_state = State {
-                time: if self.check_time {time - time_cost} else {0}, 
-                inner_quiet, 
-                cp,
-                durability: min(durability + min(manipulation, step_count), self.max_dur),
-                manipulation: max(manipulation, step_count) - step_count,
-                waste_not: max(waste_not, step_count) - step_count,
-                innovation: max(innovation, step_count) - step_count,
-                great_strides: max(great_strides, step_count) - step_count,
-                min_durability,
-                trained_perfection: 1,
-                heart_and_soul
-            };
-            let res = self.query(&new_state);
-            quality_results[action_id as usize] = if let Some(res) = res {
-                NonZeroU64::new(pack_method((res.get() >> 48) as u16, action_id, &new_state, self.check_time))
-            } else {None};
-        }
-        let ret = *quality_results.iter().max().unwrap();
+        let ret = ACTIONS.iter().map(|action| self.apply_action(state, action)).max().flatten();
         self.insert_state(state, if let Some(res) = ret {res.get()} else {0});
         ret
     }
@@ -781,7 +507,7 @@ impl DPCache {
         let mut prev = self.check(st).unwrap_or_else(|| 0);
         let (_, mut method, mut last) = unpack_method(prev);
         while method > 0 {
-            assert!(method < 19, "invalid method");
+            assert!(method < 22, "invalid method");
             prev = match self.get(Self::get_time(last), last & ((1 << 33) - 1)) {None => 0, Some(t) => *t};
             match method {
                 1 => {println!("/ac \"Basic Touch\" <wait.3>");},

@@ -291,7 +291,7 @@ fn main() {
                 }
             }
     } else {
-        cache = DPCache::new(recipe.dur, options.check_time)
+        cache = DPCache::new(recipe.dur / 5 - 1, options.check_time)
     }
 
     if options.mode == "recipe" {
