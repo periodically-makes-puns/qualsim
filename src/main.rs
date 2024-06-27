@@ -76,7 +76,7 @@ fn convert(recipe: &Statline, pst: &prog::State, finisher: &Finisher, prog_unit:
     }
     // check that there are resources remaining
     if recipe.cp < pst.cp + finisher.cp || 
-        recipe.dur < pst.durability + finisher.durability || 
+        recipe.dur < pst.durability || 
         recipe.time < pst.time + finisher.time || 
         (!recipe.has && (pst.heart_and_soul || finisher.heart_and_soul)) ||
         (pst.heart_and_soul && finisher.heart_and_soul) {
@@ -87,11 +87,13 @@ fn convert(recipe: &Statline, pst: &prog::State, finisher: &Finisher, prog_unit:
         time: recipe.time - pst.time - finisher.time,
         cp: pst.cp - finisher.cp,
         inner_quiet: pst.inner_quiet,
-        durability: pst.durability - finisher.durability,
+        durability: pst.durability,
         manipulation: pst.manipulation,
         waste_not: pst.waste_not,
         innovation: 0,
         great_strides: 0,
+        min_durability: finisher.durability - 1,
+        trained_perfection: 0,
         heart_and_soul: recipe.has && !pst.heart_and_soul && !finisher.heart_and_soul
     }, pst.reflect))
 }
@@ -164,7 +166,7 @@ fn check_recipe<'a>(cache: &mut DPCache, recipe: &mut Statline, options: &Option
                     }
                     dbg!(format!("{}{} {}", opener, extra, finisher.description));
                     dbg!((st.progress as u32 + finisher.progress as u32) * prog_unit as u32);
-                    let (q, _method, _next) = qual::unpack_method(cache.query(&qst));
+                    let (q, _method, _next) = qual::unpack_method(cache.unwrapped_query(&qst));
                     let q = (q + bonus_qual) as u32 * qual_unit as u32 / qual::UNIT as u32;
                     if q > best_qual {
                         best_qual = q;
@@ -364,7 +366,7 @@ fn main() {
                                 }
                             }
                             //dbg!(format!("{}{} {}", opener, extra, finisher.desc));
-                            let (q, _method, _next) = qual::unpack_method(cache.query(&qst));
+                            let (q, _method, _next) = qual::unpack_method(cache.unwrapped_query(&qst));
                             let q = (q + bonus_qual) as f64 / qual::UNIT as f64;
                             let p = (finisher.progress + opener_prog) as f64 / 10.;
                             let min_cms: u16 = (13. * ((recipe.prog as f64 / p).ceil() * 1.25 - 2.)).ceil() as u16;
