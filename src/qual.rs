@@ -98,7 +98,8 @@ pub static ACTION_NAMES: [&str; 23] = ["(finished)", "",
     "Basic Touch", "Standard Touch", "Advanced Touch", "Basic+Standard", "Advanced Combo", 
     "Focused Touch", "Prudent Touch", "Preparatory Touch", "Trained Finesse", "Waste Not I", 
     "Waste Not II", "Manipulation", "Master's Mend", "Innovation", "Great Strides", 
-    "Observe", "Byregot's", "Precise Touch", "Basic+Refined", "Immaculate Mend", "Trained Perfection"];
+    "Observe", "Byregot's", "Precise Touch", "Basic+Refined", "Immaculate Mend", 
+    "Trained Perfection"];
 pub struct Action {
     pub name: &'static str,
     pub action_id: u8,
@@ -307,7 +308,7 @@ pub static ACTIONS: [Action; 20] = [
         time_cost: 2,
         qual_value: 0,
         scaling: 0,
-        modification: |st| {st.great_strides = 4;}
+        modification: |st| {st.great_strides = 3;}
     },
     Action {
         name: "Byregot's",
@@ -445,12 +446,12 @@ impl DPCache {
         let qual: Option<NonZero<u64>> = self.query(&new_state);
         let qual_value: u16 = if action_id == 17 {UNIT * (10 + 2 * inner_quiet as u16) / 10} else {qual_value};
         if let Some(qual) = qual {
-            let qual = qual.get();
+            let qual: u16 = (qual.get() >> 48) as u16;
             let mut dq = 0u16;
             for item in 0..step_count {
                 dq += apply_igs(qual_value + scaling * item as u16, innovation, if item == 0 {great_strides} else {0}, min(inner_quiet+item, 10), delay+item);
             }
-            NonZeroU64::new(pack_method(((qual >> 48) as u16) + dq, action_id, &new_state, self.check_time))
+            NonZeroU64::new(pack_method(qual + dq, action_id, &new_state, self.check_time))
         } else {None}
     }
 
@@ -508,7 +509,7 @@ impl DPCache {
         let (_, mut method, mut last) = unpack_method(prev);
         while method > 0 {
             assert!(method < 22, "invalid method");
-            prev = match self.get(Self::get_time(last), last & ((1 << 33) - 1)) {None => 0, Some(t) => *t};
+            prev = match self.get(Self::get_time(last), last & ((1 << 37) - 1)) {None => 0, Some(t) => *t};
             match method {
                 1 => {println!("/ac \"Basic Touch\" <wait.3>");},
                 2 => {println!("/ac \"Standard Touch\" <wait.3>");},
@@ -524,7 +525,7 @@ impl DPCache {
                 },
                 6 => {
                     println!("/ac Observe <wait.3>");
-                    println!("/ac \"Focused Touch\" <wait.3>");
+                    println!("/ac \"Advanced Touch\" <wait.3>");
                 },
                 7 => {
                     println!("/ac \"Prudent Touch\" <wait.3>");
