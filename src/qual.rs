@@ -442,7 +442,7 @@ impl DPCache {
             heart_and_soul
         };
         modification(&mut new_state);
-        new_state.durability = min(new_state.durability, self.max_dur);
+        new_state.durability = min(new_state.durability, self.max_dur-1); // Off by one, since 0 is technically 5 dur.
         let qual: Option<NonZero<u64>> = self.query(&new_state);
         let qual_value: u16 = if action_id == 17 {UNIT * (10 + 2 * inner_quiet as u16) / 10} else {qual_value};
         if let Some(qual) = qual {

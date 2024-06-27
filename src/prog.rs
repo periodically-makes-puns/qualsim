@@ -10,7 +10,8 @@ pub struct State {
     pub muscle_memory: u8, 
     pub heart_and_soul: bool,
     pub reflect: bool,
-    pub progress: u16
+    pub progress: u16,
+    pub trained_perfection: u8
 }
 
 
@@ -22,7 +23,8 @@ mod actions {
         Manipulation,
         WasteNot,
         Veneration,
-        MuscleMemory
+        MuscleMemory,
+        TrainedPerfection
     }
     pub struct Action {
         pub progress: u16, // Efficiency x10
@@ -55,6 +57,7 @@ mod actions {
 	pub const WN1: Action = Action::new(0, 0, 56, Status::WasteNot, 4 );
 	pub const WN2: Action = Action::new(0, 0, 98, Status::WasteNot, 8 );
 	pub const INTENSIVE: Action = Action::new(40, 2, 6, Status::None, 0 );
+    pub const TP: Action = Action::new(0, 0, 0, Status::TrainedPerfection, 0);
 }
 
 impl State {
@@ -87,6 +90,7 @@ impl State {
             '1' => &actions::WN1,
             '2' => &actions::WN2,
             'i' => &actions::INTENSIVE,
+            '*' => &actions::TP,
             _ => {panic!("Bad action char");}
         });
     }
@@ -99,14 +103,14 @@ impl State {
         if act.cp == 12 {
             self.tick_statuses(true);
         }
-        if (act.durability > self.durability * (if self.waste_not > 0 {2} else {1})) || act.cp > self.cp || (act.durability == 1 && self.waste_not == 0) {
+        if ((if self.trained_perfection == 1 && act.cp != 12 {0} else {act.durability}) > self.durability * (if self.waste_not > 0 {2} else {1})) || act.cp > self.cp || (act.durability == 1 && self.waste_not == 0) {
             self.waste_not = w;
             self.veneration = v;
             self.manipulation = m;
             self.durability = d;
             return;
         }
-        self.durability -= act.durability >> (if self.waste_not > 0 {1} else {0});
+        self.durability -= (if self.trained_perfection == 1 && act.cp != 12 {0} else {act.durability}) >> (if self.waste_not > 0 {1} else {0});
 	    self.cp -= act.cp;
 	    let mut action_progress = act.progress;
         if action_progress == 40 {self.heart_and_soul = true;}
@@ -129,6 +133,7 @@ impl State {
             actions::Status::WasteNot => {self.waste_not = act.duration;}
             actions::Status::Veneration => {self.veneration = 4;}
             actions::Status::MuscleMemory => {self.muscle_memory = 5;}
+            actions::Status::TrainedPerfection => {if self.trained_perfection == 0 {self.trained_perfection = 1;}}
             _ => {}
         }
     }
@@ -141,6 +146,7 @@ impl State {
             self.manipulation -= 1;
             self.durability += 1;
         }
+        if self.trained_perfection > 0 {self.trained_perfection = 2;}
     }
 }
 #[derive(Debug, PartialEq)]
@@ -150,17 +156,19 @@ pub struct Finisher<'a> {
     pub durability: u8,
     pub progress: u16,
     pub heart_and_soul: bool,
+    pub uses_trained_perfection: bool,
     pub description: &'a str
 }
 
 impl Finisher<'_> {
-    pub const fn new(time: u8, cp: u16, durability: u8, progress: u16, heart_and_soul: bool, description: &str) -> Finisher {
+    pub const fn new(time: u8, cp: u16, durability: u8, progress: u16, uses_trained_perfection: bool, heart_and_soul: bool, description: &str) -> Finisher {
         Finisher {
             time,
             cp,
             durability,
             progress,
             heart_and_soul,
+            uses_trained_perfection,
             description
         }
     }
@@ -170,34 +178,41 @@ impl Finisher<'_> {
     }
 }
 
-pub const FINISHERS: [&Finisher; 24] = [
-    &Finisher::new(3, 0, 1, 12, false, "b"),
-    &Finisher::new(3, 7, 1, 18, false, "c"),
-    &Finisher::new(5, 12, 1, 20, false, "f"),
-    &Finisher::new(5, 6, 1, 40, true, "i"),
-    &Finisher::new(5, 25, 1, 27, false, "vc"),
-    &Finisher::new(7, 30, 1, 30, false, "vf"),
-    &Finisher::new(7, 24, 1, 60, true, "vi"),
-    &Finisher::new(6, 18, 2, 30, false, "pb"),
-    &Finisher::new(6, 25, 2, 36, false, "pc"),
-    &Finisher::new(8, 30, 2, 38, false, "pf"),
-    &Finisher::new(8, 24, 2, 58, true, "pi"),
-    &Finisher::new(8, 43, 2, 54, false, "vpc"),
-    &Finisher::new(10, 48, 2, 57, false, "vpf"),
-    &Finisher::new(8, 36, 2, 45, false, "vpb"),
-    &Finisher::new(10, 42, 2, 87, true, "vpi"),
-    &Finisher::new(8, 12, 3, 32, false, "bf"),
-    &Finisher::new(6, 7, 3, 30, false, "bc"),
-    &Finisher::new(8, 19, 3, 38, false, "cf"),
-    &Finisher::new(6, 0, 3, 24, false, "bb"),
-    &Finisher::new(6, 14, 3, 36, false, "cc"),
-    &Finisher::new(10, 24, 3, 40, false, "ff"),
-    &Finisher::new(8, 6, 3, 52, true, "bi"),
-    &Finisher::new(8, 13, 3, 58, true, "ci"),
-    &Finisher::new(10, 17, 3, 60, true, "fi"),
+pub const FINISHERS: [&Finisher; 31] = [
+    &Finisher::new(3, 0, 1, 12, false, false, "b"),
+    &Finisher::new(3, 7, 1, 18, false, false, "c"),
+    &Finisher::new(5, 12, 1, 20, false, false, "f"),
+    &Finisher::new(5, 6, 1, 40, false, true, "i"),
+    &Finisher::new(5, 25, 1, 27, false, false, "vc"),
+    &Finisher::new(7, 30, 1, 30, false, false, "vf"),
+    &Finisher::new(7, 24, 1, 60, false, true, "vi"),
+    &Finisher::new(8, 18, 1, 48, true, false, "*gb"),
+    &Finisher::new(8, 25, 1, 54, true, false, "*gc"),
+    &Finisher::new(10, 30, 1, 56, true, false, "*gf"),
+    &Finisher::new(10, 24, 1, 76, true, true, "*gi"),
+    &Finisher::new(10, 43, 1, 81, true, false, "v*gc"),
+    &Finisher::new(12, 48, 1, 84, true, false, "v*gf"),
+    &Finisher::new(12, 42, 1, 114, true, true, "v*gi"),
+    &Finisher::new(6, 18, 2, 30, false, false, "pb"),
+    &Finisher::new(6, 25, 2, 36, false, false, "pc"),
+    &Finisher::new(8, 30, 2, 38, false, false, "pf"),
+    &Finisher::new(8, 24, 2, 58, false, true, "pi"),
+    &Finisher::new(8, 43, 2, 54, false, false, "vpc"),
+    &Finisher::new(10, 48, 2, 57, false, false, "vpf"),
+    &Finisher::new(8, 36, 2, 45, false, false, "vpb"),
+    &Finisher::new(10, 42, 2, 87, false, true, "vpi"),
+    &Finisher::new(8, 12, 3, 32, false, false, "bf"),
+    &Finisher::new(6, 7, 3, 30, false, false, "bc"),
+    &Finisher::new(8, 19, 3, 38, false, false, "cf"),
+    &Finisher::new(6, 0, 3, 24, false, false, "bb"),
+    &Finisher::new(6, 14, 3, 36, false, false, "cc"),
+    &Finisher::new(10, 24, 3, 40, false, false, "ff"),
+    &Finisher::new(8, 6, 3, 52, false, true, "bi"),
+    &Finisher::new(8, 13, 3, 58, false, true, "ci"),
+    &Finisher::new(10, 17, 3, 60, false, true, "fi"),
 ];
 
-pub const OPENERS: [&str; 46] = [ 
+pub const OPENERS: [&str; 48] = [ 
     "Mmv1g",
     "Mmv2g",
     "Mmv1gg",
@@ -210,6 +225,8 @@ pub const OPENERS: [&str; 46] = [
     "Mmv2igg",
     "Mmv1iggg",
     "Mmv2iggg",
+    "Mmv1igg*g",
+    "Mmv2igg*g",
     "Mmvi1g",
     "Mmvi2g",
     "Mmvi1gg",

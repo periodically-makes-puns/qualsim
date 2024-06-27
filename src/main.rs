@@ -79,7 +79,8 @@ fn convert(recipe: &Statline, pst: &prog::State, finisher: &Finisher, prog_unit:
         recipe.dur < pst.durability || 
         recipe.time < pst.time + finisher.time || 
         (!recipe.has && (pst.heart_and_soul || finisher.heart_and_soul)) ||
-        (pst.heart_and_soul && finisher.heart_and_soul) {
+        (pst.heart_and_soul && finisher.heart_and_soul) ||
+        (pst.trained_perfection == 2 && finisher.uses_trained_perfection) {
         return None
     }
 
@@ -93,7 +94,7 @@ fn convert(recipe: &Statline, pst: &prog::State, finisher: &Finisher, prog_unit:
         innovation: 0,
         great_strides: 0,
         min_durability: finisher.durability - 1,
-        trained_perfection: 0,
+        trained_perfection: if finisher.uses_trained_perfection {2} else {pst.trained_perfection},
         heart_and_soul: recipe.has && !pst.heart_and_soul && !finisher.heart_and_soul
     }, pst.reflect))
 }
@@ -142,7 +143,8 @@ fn check_recipe<'a>(cache: &mut DPCache, recipe: &mut Statline, options: &Option
                     muscle_memory: 0,
                     heart_and_soul: recipe.has,
                     reflect: false,
-                    progress: 0
+                    progress: 0,
+                    trained_perfection: 0
                 };
                 st.apply_opener(opener, extra);
                 if st.progress as u32 * prog_unit as u32 >= recipe.prog * 10 {
@@ -161,7 +163,7 @@ fn check_recipe<'a>(cache: &mut DPCache, recipe: &mut Statline, options: &Option
                     let qst: qual::State;
                     let bonus_qual;
                     match res {
-                        Some((st, reflect)) => {qst = st; bonus_qual = if reflect {qual::UNIT} else {0};}
+                        Some((st, reflect)) => {qst = st; bonus_qual = if reflect {qual::UNIT * 3} else {0};}
                         None => continue
                     }
                     dbg!(format!("{}{} {}", opener, extra, finisher.description));
@@ -211,6 +213,7 @@ fn convert_char(c: char) -> (&'static str, i32) {
         'f' => ("Observe", 3),
         'g' => ("Groundwork", 3),
         'i' => ("Heart and Soul", 3),
+        '*' => ("Trained Perfection", 2),
         _ => ("", 1)
     }
 }
@@ -340,7 +343,8 @@ fn main() {
                             muscle_memory: 0,
                             heart_and_soul: false,
                             reflect: false,
-                            progress: 0
+                            progress: 0,
+                            trained_perfection: 0
                         };
                         st.apply_opener(opener, extra);
                         if st.progress as u32 * min_prog_unit as u32 >= recipe.prog * 10 {
