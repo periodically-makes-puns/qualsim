@@ -19,7 +19,6 @@ use crate::qual::DPCache;
 
 #[derive(Serialize, Deserialize)]
 struct Statline {
-    time: u8,
     cp: u16,
     cms: u16,
     ctrl: u16,
@@ -58,7 +57,6 @@ struct Options {
     incache: String,
     outcache: String,
     recipe_file: String,
-    check_time: bool,
     bounds: Bounds
 }
 
@@ -77,7 +75,6 @@ fn convert(recipe: &Statline, pst: &prog::State, finisher: &Finisher, prog_unit:
     // check that there are resources remaining
     if recipe.cp < pst.cp + finisher.cp || 
         recipe.dur < pst.durability || 
-        recipe.time < pst.time + finisher.time || 
         (!recipe.has && (pst.heart_and_soul || finisher.heart_and_soul)) ||
         (pst.heart_and_soul && finisher.heart_and_soul) ||
         (pst.trained_perfection == 2 && finisher.uses_trained_perfection) {
@@ -85,7 +82,7 @@ fn convert(recipe: &Statline, pst: &prog::State, finisher: &Finisher, prog_unit:
     }
 
     Some((qual::State {
-        time: recipe.time - pst.time - finisher.time,
+        time: 60,
         cp: pst.cp - finisher.cp,
         inner_quiet: pst.inner_quiet,
         durability: pst.durability,
@@ -112,26 +109,25 @@ struct SimResult<'a> {
     best_qst: qual::State
 }
 
-fn check_recipe<'a>(cache: &mut DPCache, recipe: &mut Statline, options: &Options) -> SimResult<'a> {
+fn check_recipe<'a>(cache: &mut DPCache, recipe: &mut Statline) -> SimResult<'a> {
     let prog_unit: u16 = ((recipe.cms as f64 * 10. / LV_90_PROG_DIV + 2.) * if recipe.rlvl >= 580 {LV_90_PROG_MUL} else {100.} / 100.).floor() as u16;
     let qual_unit: u16 = ((recipe.ctrl as f64 * 10. / LV_90_QUAL_DIV + 35.) * if recipe.rlvl >= 580 {LV_90_QUAL_MUL} else {100.} / 100.).floor() as u16;
     println!("Prog/100: {}", prog_unit);
     println!("Qual/100: {}", qual_unit);
-    let mut min = if options.check_time {0} else {recipe.time - 1};
-    let mut t = (recipe.time + min) / 2;
-    let mut max = recipe.time;
+    let mut min = 60;
+    let mut t = 60;
+    let mut max = 60;
     
     let mut best_qual = 0;
     let mut best_rot: Option<Rotation> = None;
     let mut best_qst: Option<qual::State> = None;
     while min <= max {
         dbg!(min, t, max);
-        recipe.time = t;
         best_qual = 0;
         best_rot = None;
         best_qst = None;
         for opener in prog::OPENERS {
-            for extra in " bcf".chars() {
+            for extra in " bc".chars() {
                 let mut st = prog::State {
                     time: 0,
                     inner_quiet: 0,
@@ -294,11 +290,11 @@ fn main() {
                 }
             }
     } else {
-        cache = DPCache::new(recipe.dur / 5 - 1, options.check_time)
+        cache = DPCache::new(recipe.dur / 5 - 1);
     }
 
     if options.mode == "recipe" {
-        let result = check_recipe(&mut cache, &mut recipe, &options);
+        let result = check_recipe(&mut cache, &mut recipe);
         let SimResult {best_rot, best_qst, best_qual, best_time} = result;
         let finisher = format!("{}", best_rot.finisher.description);
         for c in best_rot.opener.chars() {
@@ -330,7 +326,7 @@ fn main() {
         let mut solutions: HashSet<Solution> = HashSet::new();
         for target_cp in options.bounds.cp.0..=options.bounds.cp.1 {
             for opener in prog::OPENERS {
-                for extra in " bcf".chars() {
+                for extra in " bc".chars() {
                     for has in 0..=recipe.has as u8 {
                         let mut st = prog::State {
                             time: 0,

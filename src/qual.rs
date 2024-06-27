@@ -65,7 +65,7 @@ impl fmt::Display for State {
 
 #[derive(Serialize, Deserialize)]
 pub struct DPCache {
-    cache: Vec<HashMap<u64, u64>>,
+    cache: HashMap<u64, u64>,
     pub hits: u64,
     pub items: u64,
     check_time: bool,
@@ -377,34 +377,30 @@ pub static ACTIONS: [Action; 20] = [
     }
 ];
 impl DPCache {
-    pub fn new(max_dur: u8, check_time: bool) -> DPCache {
-        let mut caches: Vec<HashMap<u64, u64>> = Vec::new();
-        for _ in 0..120 { 
-            caches.push(HashMap::new());
-        }
+    pub fn new(max_dur: u8) -> DPCache {
         DPCache {
-            cache: caches,
+            cache: HashMap::new(),
             hits: 0,
             items: 0,
-            check_time,
+            check_time: false,
             max_dur
         }
     }
 
-    pub fn get(&self, time: u8, index: u64) -> Option<&u64> {
-        self.cache[if self.check_time {time as usize} else {0}].get(&index)
+    pub fn get(&self, index: u64) -> Option<&u64> {
+        self.cache.get(&index)
     }
 
     pub fn get_state(&self, state: &State) -> Option<&u64> {
-        self.cache[if self.check_time {state.time as usize} else {0}].get(&state.index(false))
+        self.cache.get(&state.index(false))
     }
 
-    pub fn insert(&mut self, time: u8, index: u64, value: u64) -> Option<u64> {
-        self.cache[if self.check_time {time as usize} else {0}].insert(index, value)
+    pub fn insert(&mut self, index: u64, value: u64) -> Option<u64> {
+        self.cache.insert(index, value)
     }
 
     pub fn insert_state(&mut self, state: &State, value: u64) -> Option<u64> {
-        self.cache[if self.check_time {state.time as usize} else {0}].insert(state.index(false), value)
+        self.cache.insert(state.index(false), value)
     }
 
 
@@ -493,7 +489,7 @@ impl DPCache {
         println!("TOTAL: {:.4}", qual as f64 / 400.0);
         while method > 0 {
             assert!(method < 22, "invalid method");
-            prev = match self.get(Self::get_time(last), last & ((1 << 37) - 1)) {None => 0, Some(t) => *t};
+            prev = match self.get(last & ((1 << 37) - 1)) {None => 0, Some(t) => *t};
             qual = (prev >> 48) as u16;
             println!("{:02} {:20} {:.4} {}", method, 
                 ACTION_NAMES[method as usize + 1], 
@@ -509,7 +505,7 @@ impl DPCache {
         let (_, mut method, mut last) = unpack_method(prev);
         while method > 0 {
             assert!(method < 22, "invalid method");
-            prev = match self.get(Self::get_time(last), last & ((1 << 37) - 1)) {None => 0, Some(t) => *t};
+            prev = match self.get( last & ((1 << 37) - 1)) {None => 0, Some(t) => *t};
             match method {
                 1 => {println!("/ac \"Basic Touch\" <wait.3>");},
                 2 => {println!("/ac \"Standard Touch\" <wait.3>");},
@@ -587,7 +583,7 @@ impl DPCache {
         while method > 0 {
             assert!(method < 22, "invalid method");
             prev = next;
-            curr = match self.get(Self::get_time(next), next & ((1 << 33) - 1)) {None => 0, Some(t) => *t};
+            curr = match self.get( next & ((1 << 33) - 1)) {None => 0, Some(t) => *t};
             (_, method, next) = unpack_method(curr);
         }
         return State::unpack(prev);

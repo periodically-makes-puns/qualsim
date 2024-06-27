@@ -103,14 +103,14 @@ impl State {
         if act.cp == 12 {
             self.tick_statuses(true);
         }
-        if ((if self.trained_perfection == 1 && act.cp != 12 {0} else {act.durability}) > self.durability * (if self.waste_not > 0 {2} else {1})) || act.cp > self.cp || (act.durability == 1 && self.waste_not == 0) {
+        if ((if self.trained_perfection == 1 {0} else {act.durability}) > self.durability * (if self.waste_not > 0 {2} else {1})) || act.cp > self.cp || (act.durability == 1 && self.waste_not == 0) {
             self.waste_not = w;
             self.veneration = v;
             self.manipulation = m;
             self.durability = d;
             return;
         }
-        self.durability -= (if self.trained_perfection == 1 && act.cp != 12 {0} else {act.durability}) >> (if self.waste_not > 0 {1} else {0});
+        self.durability -= (if self.trained_perfection == 1 {0} else {act.durability}) >> (if self.waste_not > 0 {1} else {0});
 	    self.cp -= act.cp;
 	    let mut action_progress = act.progress;
         if action_progress == 40 {self.heart_and_soul = true;}
@@ -178,38 +178,38 @@ impl Finisher<'_> {
     }
 }
 
-pub const FINISHERS: [&Finisher; 31] = [
+pub const FINISHERS: [&Finisher; 21] = [
     &Finisher::new(3, 0, 1, 12, false, false, "b"),
     &Finisher::new(3, 7, 1, 18, false, false, "c"),
-    &Finisher::new(5, 12, 1, 20, false, false, "f"),
+    // &Finisher::new(5, 12, 1, 20, false, false, "f"),
     &Finisher::new(5, 6, 1, 40, false, true, "i"),
     &Finisher::new(5, 25, 1, 27, false, false, "vc"),
-    &Finisher::new(7, 30, 1, 30, false, false, "vf"),
+    // &Finisher::new(7, 30, 1, 30, false, false, "vf"),
     &Finisher::new(7, 24, 1, 60, false, true, "vi"),
     &Finisher::new(8, 18, 1, 48, true, false, "*gb"),
     &Finisher::new(8, 25, 1, 54, true, false, "*gc"),
-    &Finisher::new(10, 30, 1, 56, true, false, "*gf"),
+    // &Finisher::new(10, 30, 1, 56, true, false, "*gf"),
     &Finisher::new(10, 24, 1, 76, true, true, "*gi"),
     &Finisher::new(10, 43, 1, 81, true, false, "v*gc"),
-    &Finisher::new(12, 48, 1, 84, true, false, "v*gf"),
+    // &Finisher::new(12, 48, 1, 84, true, false, "v*gf"),
     &Finisher::new(12, 42, 1, 114, true, true, "v*gi"),
     &Finisher::new(6, 18, 2, 30, false, false, "pb"),
     &Finisher::new(6, 25, 2, 36, false, false, "pc"),
-    &Finisher::new(8, 30, 2, 38, false, false, "pf"),
+    // &Finisher::new(8, 30, 2, 38, false, false, "pf"),
     &Finisher::new(8, 24, 2, 58, false, true, "pi"),
     &Finisher::new(8, 43, 2, 54, false, false, "vpc"),
-    &Finisher::new(10, 48, 2, 57, false, false, "vpf"),
+    // &Finisher::new(10, 48, 2, 57, false, false, "vpf"),
     &Finisher::new(8, 36, 2, 45, false, false, "vpb"),
     &Finisher::new(10, 42, 2, 87, false, true, "vpi"),
-    &Finisher::new(8, 12, 3, 32, false, false, "bf"),
+    // &Finisher::new(8, 12, 3, 32, false, false, "bf"),
     &Finisher::new(6, 7, 3, 30, false, false, "bc"),
-    &Finisher::new(8, 19, 3, 38, false, false, "cf"),
+    // &Finisher::new(8, 19, 3, 38, false, false, "cf"),
     &Finisher::new(6, 0, 3, 24, false, false, "bb"),
     &Finisher::new(6, 14, 3, 36, false, false, "cc"),
-    &Finisher::new(10, 24, 3, 40, false, false, "ff"),
+    // &Finisher::new(10, 24, 3, 40, false, false, "ff"),
     &Finisher::new(8, 6, 3, 52, false, true, "bi"),
     &Finisher::new(8, 13, 3, 58, false, true, "ci"),
-    &Finisher::new(10, 17, 3, 60, false, true, "fi"),
+    // &Finisher::new(10, 17, 3, 60, false, true, "fi"),
 ];
 
 pub const OPENERS: [&str; 48] = [ 
