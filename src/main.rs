@@ -309,6 +309,8 @@ fn main() {
         }
         println!("Best time: {}", best_time);
         println!("Quality: {}", best_qual);
+        println!("Opener: {}{}", best_rot.opener, best_rot.extra);
+        println!("Finisher: {}", finisher);
         cache.print_backtrace(&best_qst);
         //println!("hits: {}", cache.hits);
         //println!("items: {}", cache.items);

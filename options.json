@@ -1,6 +1,6 @@
 {
     "mode": "recipe",
-    "incache": "",
+    "incache": "rcache70.bcode",
     "outcache": "rcache70.bcode",
     "recipe_file": "recipe70.json",
     "_comment_": "USE NON-SPECIALIST BOUNDS",
