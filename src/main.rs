@@ -60,10 +60,10 @@ struct Options {
     bounds: Bounds
 }
 
-const LV_90_PROG_DIV: f64 = 130.;
-const LV_90_QUAL_DIV: f64 = 115.;
-const LV_90_PROG_MUL: f64 = 80.;
-const LV_90_QUAL_MUL: f64 = 70.;
+const LV_90_PROG_DIV: f64 = 150.;
+const LV_90_QUAL_DIV: f64 = 90.;
+const LV_90_PROG_MUL: f64 = 75.;
+const LV_90_QUAL_MUL: f64 = 80.;
 
 fn convert(recipe: &Statline, pst: &prog::State, finisher: &Finisher, prog_unit: u16) -> Option<(qual::State, bool)> {
     // Converts a prog state to a qual state if possible. If recipe would fail, returns None
@@ -110,8 +110,8 @@ struct SimResult<'a> {
 }
 
 fn check_recipe<'a>(cache: &mut DPCache, recipe: &mut Statline) -> SimResult<'a> {
-    let prog_unit: u16 = ((recipe.cms as f64 * 10. / LV_90_PROG_DIV + 2.) * if recipe.rlvl >= 580 {LV_90_PROG_MUL} else {100.} / 100.).floor() as u16;
-    let qual_unit: u16 = ((recipe.ctrl as f64 * 10. / LV_90_QUAL_DIV + 35.) * if recipe.rlvl >= 580 {LV_90_QUAL_MUL} else {100.} / 100.).floor() as u16;
+    let prog_unit: u16 = ((recipe.cms as f64 * 10. / LV_90_PROG_DIV + 2.) * if recipe.rlvl >= 690 {LV_90_PROG_MUL} else {100.} / 100.).floor() as u16;
+    let qual_unit: u16 = ((recipe.ctrl as f64 * 10. / LV_90_QUAL_DIV + 35.) * if recipe.rlvl >= 690 {LV_90_QUAL_MUL} else {100.} / 100.).floor() as u16;
     println!("Prog/100: {}", prog_unit);
     println!("Qual/100: {}", qual_unit);
     let mut min = 60;
